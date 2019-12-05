@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn part1() -> usize {
+pub fn part1() -> i32 {
     assert_eq!(run_program(vec!(1, 0, 0, 0, 99), 0), vec!(2, 0, 0, 0, 99));
     assert_eq!(run_program(vec!(2, 3, 0, 3, 99), 0), vec!(2, 3, 0, 6, 99));
     assert_eq!(
@@ -20,7 +20,7 @@ pub fn part1() -> usize {
     alarm_state[1] = 12;
     alarm_state[2] = 2;
 
-    run_program(alarm_state, 0)[0]
+    run_program(alarm_state, 0)[0] as i32
 }
 
 fn run_program(program: Vec<usize>, pointer: usize) -> Vec<usize> {
