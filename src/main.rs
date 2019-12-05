@@ -23,6 +23,7 @@ fn main() {
             "d1p1" => run_one(day1::part1),
             "d1p2" => run_one(day1::part2),
             "d2p1" => run_one(day2::part1),
+            "d2p2" => run_one(day2::part2),
             _ => panic!("unknown exercise: {}", exercise),
         },
     }
