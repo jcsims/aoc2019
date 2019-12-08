@@ -1,5 +1,6 @@
 mod day1;
 mod day2;
+mod day3;
 mod day4;
 mod util;
 
@@ -25,6 +26,7 @@ fn main() {
             "d1p2" => run_one(day1::part2),
             "d2p1" => run_one(day2::part1),
             "d2p2" => run_one(day2::part2),
+            "d3p1" => run_one(day3::part1),
             "d4p1" => run_one(day4::part1),
             "d4p2" => run_one(day4::part2),
             _ => panic!("unknown exercise: {}", exercise),
