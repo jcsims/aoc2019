@@ -1,5 +1,6 @@
 mod day1;
 mod day2;
+mod day4;
 mod util;
 
 use std::env;
@@ -24,6 +25,8 @@ fn main() {
             "d1p2" => run_one(day1::part2),
             "d2p1" => run_one(day2::part1),
             "d2p2" => run_one(day2::part2),
+            "d4p1" => run_one(day4::part1),
+            "d4p2" => run_one(day4::part2),
             _ => panic!("unknown exercise: {}", exercise),
         },
     }
@@ -35,6 +38,9 @@ fn run_all() {
     assert_eq!(3442987, day1::part1());
     assert_eq!(5161601, day1::part2());
     assert_eq!(3306701, day2::part1());
+    assert_eq!(7621, day2::part2());
+    assert_eq!(2150, day4::part1());
+    assert_eq!(1462, day4::part2());
 
     println!("Elapsed time: {:?}", Instant::elapsed(&now));
 }
