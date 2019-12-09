@@ -7,12 +7,9 @@ pub fn part1() -> i32 {
     alarm_state[1] = 12;
     alarm_state[2] = 2;
 
-    let mut program = intcode::Program {
-        state: alarm_state,
-        pointer: 0,
-        input: 0,
-        output: Vec::new(),
-    };
+    let mut program = intcode::empty_program();
+
+    program.state = alarm_state;
 
     intcode::run_program(&mut program).state[0] as i32
 }
@@ -20,12 +17,8 @@ pub fn part1() -> i32 {
 pub fn part2() -> i32 {
     let initial_state = util::comma_separated_to_vec("data/d2.txt");
 
-    let mut program = intcode::Program {
-        state: initial_state.to_vec(),
-        pointer: 0,
-        input: 0,
-        output: Vec::new(),
-    };
+    let mut program = intcode::empty_program();
+    program.state = initial_state.to_vec();
 
     let mut correct_noun = 0;
     let mut correct_verb = 0;
