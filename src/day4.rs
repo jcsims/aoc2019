@@ -2,8 +2,6 @@ pub fn part1() -> i32 {
     let lower = 124075;
     let upper = 580769;
 
-    assert_eq!(vec!(1, 2, 3, 4), digits(1234));
-
     let mut passwords = 0;
 
     for i in lower..=upper {
@@ -115,4 +113,9 @@ fn digits(input: i32) -> Vec<i32> {
     }
 
     digits
+}
+
+#[test]
+fn part1_test() {
+    assert_eq!(vec!(1, 2, 3, 4), digits(1234));
 }
