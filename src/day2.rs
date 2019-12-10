@@ -11,7 +11,7 @@ pub fn part1() -> i32 {
 
     program.state = alarm_state;
 
-    intcode::run_program(&mut program).state[0] as i32
+    intcode::run_program(&mut program).state[0]
 }
 
 pub fn part2() -> i32 {
@@ -38,7 +38,7 @@ pub fn part2() -> i32 {
         }
     }
 
-    (100 * correct_noun + correct_verb) as i32
+    (100 * correct_noun + correct_verb)
 }
 
 #[test]

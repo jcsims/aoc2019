@@ -1,3 +1,5 @@
+use crate::util;
+
 pub fn part1() -> i32 {
     let lower = 124075;
     let upper = 580769;
@@ -5,7 +7,7 @@ pub fn part1() -> i32 {
     let mut passwords = 0;
 
     for i in lower..=upper {
-        let input = digits(i);
+        let input = util::digits(i);
         match doubled_digits(&input) {
             false => continue,
             true => match digits_in_order(&input) {
@@ -25,7 +27,7 @@ pub fn part2() -> i32 {
     let mut passwords = 0;
 
     for i in lower..=upper {
-        let input = digits(i);
+        let input = util::digits(i);
         match strictly_doubled_digits(&input) {
             false => continue,
             true => match digits_in_order(&input) {
@@ -102,20 +104,7 @@ fn digits_in_order(input: &Vec<i32>) -> bool {
         .is_some()
 }
 
-fn digits(input: i32) -> Vec<i32> {
-    let mut digits: Vec<i32> = Vec::new();
-
-    let mut temp = input;
-
-    while temp > 0 {
-        digits.insert(0, temp % 10);
-        temp /= 10;
-    }
-
-    digits
-}
-
 #[test]
 fn part1_test() {
-    assert_eq!(vec!(1, 2, 3, 4), digits(1234));
+    assert_eq!(vec!(1, 2, 3, 4), util::digits(1234));
 }

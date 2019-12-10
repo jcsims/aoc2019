@@ -1,9 +1,18 @@
+use crate::intcode;
 use crate::util;
 
 pub fn part1() -> i32 {
-    let diagnostic_program = util::comma_separated_to_vec("data/d5.txt");
+    let mut program = intcode::empty_program();
 
-    42
+    program.state = util::comma_separated_to_vec("data/d5.txt");
+    program.input = 1;
+
+    let final_state = intcode::run_program(&mut program);
+
+    match final_state.output.last() {
+        Some(x) => return x.clone(),
+        None => panic!("Bad output :("),
+    }
 }
 
 pub fn part2() -> i32 {
