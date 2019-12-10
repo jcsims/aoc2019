@@ -40,6 +40,7 @@ fn run_all() {
     assert_eq!(2150, day4::part1());
     assert_eq!(1462, day4::part2());
     assert_eq!(9938601, day5::part1());
+    assert_eq!(4283952, day5::part2());
 
     println!("Elapsed time: {:?}", Instant::elapsed(&now));
 }

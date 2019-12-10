@@ -16,5 +16,15 @@ pub fn part1() -> i32 {
 }
 
 pub fn part2() -> i32 {
-    42
+    let mut program = intcode::empty_program();
+
+    program.state = util::comma_separated_to_vec("data/d5.txt");
+    program.input = 5;
+
+    let final_state = intcode::run_program(&mut program);
+
+    match final_state.output.first() {
+        Some(x) => return x.clone(),
+        None => panic!("Bad output :("),
+    }
 }
