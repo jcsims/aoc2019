@@ -12,11 +12,20 @@ pub fn part1() -> i32 {
 
     let orbits = build_orbits(&mut orbit_relationships);
 
-    orbits.iter().fold(0, |acc, x| acc + x.depth)
+    orbit_checksum(orbits)
 }
 
 pub fn part2() -> i32 {
-    42
+    let mut orbit_relationships = util::lines_from_path("data/d6.txt")
+        .map(|x| match x {
+            Ok(orbit_string) => parse_orbit(&orbit_string),
+            Err(e) => panic!("Funky line: {:?}", e),
+        })
+        .collect::<HashSet<OrbitRelationship>>();
+
+    let orbits = build_orbits(&mut orbit_relationships);
+
+    orbital_transfers(orbits)
 }
 
 const COM: &str = "COM";
@@ -27,16 +36,18 @@ struct OrbitRelationship {
     orbitee: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Orbit {
     depth: i32,
     object: String,
+    orbits: String,
 }
 
 impl Orbit {
-    fn new(object: String) -> Orbit {
+    fn new(object: &str) -> Orbit {
         Orbit {
-            object: object,
+            object: object.to_owned(),
+            orbits: "foo".to_owned(),
             depth: 0,
         }
     }
@@ -61,6 +72,7 @@ fn build_orbits(orbit_relationships: &mut HashSet<OrbitRelationship>) -> HashSet
     let com = Orbit {
         depth: 0,
         object: COM.to_owned(),
+        orbits: "nothing".to_owned(),
     };
     orbits.insert(com);
 
@@ -68,12 +80,11 @@ fn build_orbits(orbit_relationships: &mut HashSet<OrbitRelationship>) -> HashSet
 
     while !orbit_relationships.is_empty() {
         for o in orbit_relationships.iter() {
-            let orbited = Orbit::new(o.orbited.clone());
-            if orbits.contains(&orbited) {
-                let orbited = orbits.get(&orbited).unwrap();
+            if let Some(orbited) = orbits.get(&Orbit::new(&o.orbited)) {
                 let orbitee = Orbit {
                     depth: orbited.depth + 1,
                     object: o.orbitee.clone(),
+                    orbits: orbited.object.clone(),
                 };
                 orbits.insert(orbitee);
                 to_remove.insert(o.clone());
@@ -87,6 +98,60 @@ fn build_orbits(orbit_relationships: &mut HashSet<OrbitRelationship>) -> HashSet
     }
 
     orbits
+}
+
+fn orbit_checksum(orbits: HashSet<Orbit>) -> i32 {
+    orbits.iter().fold(0, |acc, x| acc + x.depth)
+}
+
+fn ancestors_for_orbit(orbits: &HashSet<Orbit>, orbit: &Orbit) -> Vec<Orbit> {
+    let mut ancestors: Vec<Orbit> = Vec::new();
+
+    let mut current = orbit;
+
+    while let Some(orbited) = orbits.get(&Orbit::new(&current.orbits)) {
+        ancestors.push(orbited.to_owned());
+        current = orbited;
+    }
+
+    ancestors.reverse();
+
+    ancestors
+}
+
+fn orbital_transfers(orbits: HashSet<Orbit>) -> i32 {
+    let you = orbits.get(&Orbit::new("YOU")).unwrap();
+    let santa = orbits.get(&Orbit::new("SAN")).unwrap();
+
+    let your_ancestors = ancestors_for_orbit(&orbits, &you);
+    let santa_ancestors = ancestors_for_orbit(&orbits, &santa);
+
+    assert!(
+        your_ancestors[0] == santa_ancestors[0],
+        "You and Santa don't share a common root!"
+    );
+
+    let mut i = 1;
+
+    loop {
+        match your_ancestors.get(i) {
+            Some(yours) => {
+                match santa_ancestors.get(i) {
+                    // Still have common ancestors. Move down the tree
+                    Some(santas) if yours == santas => {
+                        i += 1;
+                        continue;
+                    }
+                    // Need to back up one, that's our common ancestor
+                    _ => {
+                        let depth = your_ancestors[i - 1].depth;
+                        return (santa.depth - depth) + (you.depth - depth) - 2;
+                    }
+                }
+            }
+            None => panic!("No common ancestors!"),
+        }
+    }
 }
 
 fn parse_orbit(input: &str) -> OrbitRelationship {
@@ -118,12 +183,7 @@ fn orbit_count() {
     .map(|x| parse_orbit(&x))
     .collect();
 
-    assert_eq!(
-        42,
-        build_orbits(&mut orbit_relationships)
-            .iter()
-            .fold(0, |acc, x| acc + x.depth)
-    );
+    assert_eq!(42, orbit_checksum(build_orbits(&mut orbit_relationships)));
 }
 
 #[test]
@@ -135,4 +195,41 @@ fn hash_empty() {
     assert!(hash.remove(&1));
 
     assert!(hash.is_empty());
+}
+
+#[test]
+fn ancestors_test() {
+    let orbits = build_orbits(
+        &mut [
+            "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "K)YOU",
+            "I)SAN",
+        ]
+        .iter()
+        .map(|x| parse_orbit(&x))
+        .collect(),
+    );
+
+    assert!(ancestors_for_orbit(&orbits, &Orbit::new("COM")).is_empty());
+    let d = Orbit {
+        depth: 3,
+        object: "D".to_owned(),
+        orbits: "C".to_owned(),
+    };
+    assert_eq!(
+        vec![Orbit::new("COM"), Orbit::new("B"), Orbit::new("C")],
+        ancestors_for_orbit(&orbits, &d)
+    );
+}
+
+#[test]
+fn orbital_transfers_test() {
+    let mut orbit_relationships = [
+        "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "K)YOU",
+        "I)SAN",
+    ]
+    .iter()
+    .map(|x| parse_orbit(&x))
+    .collect();
+
+    assert_eq!(4, orbital_transfers(build_orbits(&mut orbit_relationships)));
 }
