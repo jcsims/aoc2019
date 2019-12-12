@@ -27,6 +27,17 @@ pub fn comma_separated_to_vec(filepath: &str) -> Vec<i32> {
         .collect()
 }
 
+pub fn file_as_string(filepath: &str) -> String {
+    let file = File::open(Path::new(filepath)).unwrap();
+
+    let mut out_string = String::new();
+
+    match BufReader::new(file).read_to_string(&mut out_string) {
+        Err(e) => panic!("Error reading string from file: {:?}", e),
+        _ => out_string,
+    }
+}
+
 pub fn digits(input: i32) -> Vec<i32> {
     let mut digits: Vec<i32> = Vec::new();
 
