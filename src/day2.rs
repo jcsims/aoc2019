@@ -1,4 +1,5 @@
 use crate::intcode;
+use crate::intcode::Program;
 use crate::util;
 
 pub fn part1() -> i32 {
@@ -7,9 +8,7 @@ pub fn part1() -> i32 {
     alarm_state[1] = 12;
     alarm_state[2] = 2;
 
-    let mut program = intcode::empty_program();
-
-    program.state = alarm_state;
+    let mut program = Program::new(alarm_state);
 
     intcode::run_program(&mut program).state[0]
 }
@@ -17,8 +16,7 @@ pub fn part1() -> i32 {
 pub fn part2() -> i32 {
     let initial_state = util::comma_separated_to_vec("data/d2.txt");
 
-    let mut program = intcode::empty_program();
-    program.state = initial_state.to_vec();
+    let mut program = Program::new(initial_state.to_vec());
 
     let mut correct_noun = 0;
     let mut correct_verb = 0;

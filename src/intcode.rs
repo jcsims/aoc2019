@@ -1,16 +1,25 @@
 use crate::util;
+use log::trace;
+use std::collections::VecDeque;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Program {
-    pub input: i32,
-    pub output: Vec<i32>,
+    pub output: VecDeque<i32>,
     pub state: Vec<i32>,
     pub pointer: usize,
+    pub input: VecDeque<i32>,
+    pub halt_status: Option<HaltStatus>,
 }
 
 enum ParameterMode {
     Immediate,
     Position,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum HaltStatus {
+    Terminated, // Go to an opcode 99, all done
+    WaitingInput,
 }
 
 // Parameters that an instruction writes to will never be in immediate mode.
@@ -26,12 +35,39 @@ enum OpCode {
     Stop,
 }
 
-pub fn empty_program() -> Program {
-    Program {
-        input: 0,
-        output: Vec::new(),
-        state: Vec::new(),
-        pointer: 0,
+impl Program {
+    pub fn new(state: Vec<i32>) -> Program {
+        Program {
+            input: VecDeque::new(),
+            output: VecDeque::new(),
+            state: state,
+            pointer: 0,
+            halt_status: None,
+        }
+    }
+
+    pub fn push_input(program: &mut Self, input: i32) {
+        program.input.push_back(input);
+    }
+
+    pub fn has_input(program: &Self) -> bool {
+        program.input.front().is_some()
+    }
+
+    pub fn get_next_input(program: &mut Self) -> Option<i32> {
+        program.input.pop_front()
+    }
+
+    pub fn push_output(program: &mut Self, output: i32) {
+        program.output.push_back(output);
+    }
+
+    pub fn get_next_output(program: &mut Self) -> Option<i32> {
+        program.output.pop_front()
+    }
+
+    pub fn get_last_output(program: &mut Self) -> Option<i32> {
+        program.output.pop_back()
     }
 }
 
@@ -41,10 +77,20 @@ pub fn run_program(program: &mut Program) -> &mut Program {
     }
 
     match parse_opcode(program.state[program.pointer]) {
-        OpCode::Stop => program,
+        OpCode::Stop => {
+            program.halt_status = Some(HaltStatus::Terminated);
+            program
+        }
         OpCode::Add(x, y) => run_add_instruction(program, x, y),
         OpCode::Multiply(x, y) => run_mult_instruction(program, x, y),
-        OpCode::Write => run_save(program),
+        OpCode::Write => {
+            if Program::has_input(&program) {
+                run_save(program)
+            } else {
+                program.halt_status = Some(HaltStatus::WaitingInput);
+                program
+            }
+        }
         OpCode::Output(x) => run_output(program, x),
         OpCode::JumpIfTrue(x, y) => run_jump(program, true, x, y),
         OpCode::JumpIfFalse(x, y) => run_jump(program, false, x, y),
@@ -58,7 +104,6 @@ fn run_add_instruction(
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
 ) -> &mut Program {
-    // println!("Adding! state: {:?}", program);
     let operand_1 = match op1_mode {
         ParameterMode::Position => program.state[program.state[program.pointer + 1] as usize],
         ParameterMode::Immediate => program.state[program.pointer + 1],
@@ -68,6 +113,13 @@ fn run_add_instruction(
         ParameterMode::Immediate => program.state[program.pointer + 2],
     };
     let destination = program.state[program.pointer + 3] as usize;
+
+    trace!(
+        "Adding! operand_1: {}, operand_2: {}, destination: {}",
+        operand_1,
+        operand_2,
+        destination
+    );
 
     program.state[destination] = operand_1 + operand_2;
 
@@ -81,7 +133,6 @@ fn run_mult_instruction(
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
 ) -> &mut Program {
-    // println!("Multiplying! state: {:?}", program);
     let operand_1 = match op1_mode {
         ParameterMode::Position => program.state[program.state[program.pointer + 1] as usize],
         ParameterMode::Immediate => program.state[program.pointer + 1],
@@ -92,6 +143,13 @@ fn run_mult_instruction(
     };
     let destination = program.state[program.pointer + 3] as usize;
 
+    trace!(
+        "Multiplying! operand_1: {}, operand_2: {}, destination: {}",
+        operand_1,
+        operand_2,
+        destination
+    );
+
     program.state[destination] = operand_1 * operand_2;
     program.pointer += 4;
 
@@ -99,9 +157,16 @@ fn run_mult_instruction(
 }
 
 fn run_save(program: &mut Program) -> &mut Program {
-    // println!("Taking input! state: {:?}", program);
-    let input_pointer = program.state[program.pointer + 1] as usize;
-    program.state[input_pointer] = program.input;
+    let destination = program.state[program.pointer + 1] as usize;
+    let input = Program::get_next_input(program).unwrap();
+
+    trace!(
+        "Taking input! destination: {}, input: {}",
+        destination,
+        input
+    );
+
+    program.state[destination] = input;
 
     program.pointer += 2;
 
@@ -109,13 +174,14 @@ fn run_save(program: &mut Program) -> &mut Program {
 }
 
 fn run_output(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
-    // println!("Pushing output! state: {:?}", program);
     let output = match op_mode {
         ParameterMode::Position => program.state[program.state[program.pointer + 1] as usize],
         ParameterMode::Immediate => program.state[program.pointer + 1],
     };
 
-    program.output.push(output);
+    trace!("Pushing output: {}", output);
+
+    Program::push_output(program, output);
 
     program.pointer += 2;
 
@@ -270,255 +336,120 @@ fn parse_mode(mode: i32) -> ParameterMode {
 #[test]
 fn day2_intcode_test() {
     assert_eq!(
-        run_program(&mut Program {
-            state: vec!(1, 0, 0, 0, 99),
-            pointer: 0,
-            input: 0,
-            output: Vec::new()
-        })
-        .state,
+        run_program(&mut Program::new(vec!(1, 0, 0, 0, 99))).state,
         vec!(2, 0, 0, 0, 99)
     );
     assert_eq!(
-        run_program(&mut Program {
-            state: vec!(2, 3, 0, 3, 99),
-            pointer: 0,
-            input: 0,
-            output: Vec::new()
-        })
-        .state,
+        run_program(&mut Program::new(vec!(2, 3, 0, 3, 99))).state,
         vec!(2, 3, 0, 6, 99)
     );
     assert_eq!(
-        run_program(&mut Program {
-            state: vec!(2, 4, 4, 5, 99, 0),
-            pointer: 0,
-            input: 0,
-            output: Vec::new()
-        })
-        .state,
+        run_program(&mut Program::new(vec!(2, 4, 4, 5, 99, 0))).state,
         vec!(2, 4, 4, 5, 99, 9801)
     );
     assert_eq!(
-        run_program(&mut Program {
-            state: vec!(1, 1, 1, 4, 99, 5, 6, 0, 99),
-            pointer: 0,
-            input: 0,
-            output: Vec::new()
-        })
-        .state,
+        run_program(&mut Program::new(vec!(1, 1, 1, 4, 99, 5, 6, 0, 99))).state,
         vec!(30, 1, 1, 4, 2, 5, 6, 0, 99)
     );
 }
 
 #[test]
 fn basic_io_test() {
-    assert_eq!(
-        1,
-        run_program(&mut Program {
-            state: vec!(3, 0, 4, 0, 99),
-            pointer: 0,
-            input: 1,
-            output: Vec::new()
-        })
-        .output[0]
-    );
+    let mut input = Program::new(vec![3, 0, 4, 0, 99]);
+    Program::push_input(&mut input, 1);
+    assert_eq!(1, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        42,
-        run_program(&mut Program {
-            state: vec!(3, 0, 4, 0, 99),
-            pointer: 0,
-            input: 42,
-            output: Vec::new()
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 0, 4, 0, 99]);
+    Program::push_input(&mut input, 42);
+
+    assert_eq!(42, run_program(&mut input).output[0]);
 }
 
 #[test]
 fn opcode_mode_test() {
     assert_eq!(
         1101,
-        run_program(&mut Program {
-            state: vec![1101, 100, -1, 4, 0],
-            pointer: 0,
-            input: 0,
-            output: Vec::new(),
-        })
-        .state[0]
+        run_program(&mut Program::new(vec![1101, 100, -1, 4, 0])).state[0]
     );
 
     assert_eq!(
         99,
-        run_program(&mut Program {
-            state: vec![1002, 4, 3, 4, 33],
-            pointer: 0,
-            input: 0,
-            output: Vec::new(),
-        })
-        .state[4]
+        run_program(&mut Program::new(vec![1002, 4, 3, 4, 33])).state[4]
     )
 }
 
 #[test]
 fn four_more_opcodes() {
     // equals
-    assert_eq!(
-        1,
-        run_program(&mut Program {
-            state: vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8],
-            pointer: 0,
-            input: 8,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    let mut input = Program::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
+    Program::push_input(&mut input, 8);
+    assert_eq!(1, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        0,
-        run_program(&mut Program {
-            state: vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8],
-            pointer: 0,
-            input: 42,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
+    Program::push_input(&mut input, 42);
+    assert_eq!(0, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        0,
-        run_program(&mut Program {
-            state: vec![3, 3, 1108, -1, 8, 3, 4, 3, 99],
-            pointer: 0,
-            input: 42,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    Program::push_input(&mut input, 42);
+    assert_eq!(0, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        1,
-        run_program(&mut Program {
-            state: vec![3, 3, 1108, -1, 8, 3, 4, 3, 99],
-            pointer: 0,
-            input: 8,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
+    Program::push_input(&mut input, 8);
+    assert_eq!(1, run_program(&mut input).output[0]);
 
     // less than
-    assert_eq!(
-        0,
-        run_program(&mut Program {
-            state: vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8],
-            pointer: 0,
-            input: 42,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
+    Program::push_input(&mut input, 42);
+    assert_eq!(0, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        1,
-        run_program(&mut Program {
-            state: vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8],
-            pointer: 0,
-            input: 2,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
+    Program::push_input(&mut input, 2);
+    assert_eq!(1, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        0,
-        run_program(&mut Program {
-            state: vec![3, 3, 1107, -1, 8, 3, 4, 3, 99],
-            pointer: 0,
-            input: 42,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    Program::push_input(&mut input, 42);
+    assert_eq!(0, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        1,
-        run_program(&mut Program {
-            state: vec![3, 3, 1107, -1, 8, 3, 4, 3, 99],
-            pointer: 0,
-            input: 4,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
+    Program::push_input(&mut input, 4);
+    assert_eq!(1, run_program(&mut input).output[0]);
 
     // Jumps
-    assert_eq!(
-        1,
-        run_program(&mut Program {
-            state: vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
-            pointer: 0,
-            input: 42,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![
+        3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
+    ]);
+    Program::push_input(&mut input, 42);
+    assert_eq!(1, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        0,
-        run_program(&mut Program {
-            state: vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
-            pointer: 0,
-            input: 0,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![
+        3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
+    ]);
+    Program::push_input(&mut input, 0);
+
+    assert_eq!(0, run_program(&mut input).output[0]);
 
     // More complex test
-    assert_eq!(
-        999,
-        run_program(&mut Program {
-            state: vec![
-                3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36,
-                98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000,
-                1, 20, 4, 20, 1105, 1, 46, 98, 99
-            ],
-            pointer: 0,
-            input: 4,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![
+        3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36, 98, 0, 0,
+        1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20,
+        1105, 1, 46, 98, 99,
+    ]);
+    Program::push_input(&mut input, 4);
+    assert_eq!(999, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        1000,
-        run_program(&mut Program {
-            state: vec![
-                3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36,
-                98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000,
-                1, 20, 4, 20, 1105, 1, 46, 98, 99
-            ],
-            pointer: 0,
-            input: 8,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![
+        3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36, 98, 0, 0,
+        1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20,
+        1105, 1, 46, 98, 99,
+    ]);
+    Program::push_input(&mut input, 8);
+    assert_eq!(1000, run_program(&mut input).output[0]);
 
-    assert_eq!(
-        1001,
-        run_program(&mut Program {
-            state: vec![
-                3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36,
-                98, 0, 0, 1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000,
-                1, 20, 4, 20, 1105, 1, 46, 98, 99
-            ],
-            pointer: 0,
-            input: 42,
-            output: Vec::new(),
-        })
-        .output[0]
-    );
+    input = Program::new(vec![
+        3, 21, 1008, 21, 8, 20, 1005, 20, 22, 107, 8, 21, 20, 1006, 20, 31, 1106, 0, 36, 98, 0, 0,
+        1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20,
+        1105, 1, 46, 98, 99,
+    ]);
+    Program::push_input(&mut input, 42);
+    assert_eq!(1001, run_program(&mut input).output[0]);
 }

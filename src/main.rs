@@ -1,9 +1,13 @@
+extern crate itertools;
+extern crate log;
+
 mod day1;
 mod day2;
 mod day3;
 mod day4;
 mod day5;
 mod day6;
+mod day7;
 mod intcode;
 mod util;
 
@@ -11,6 +15,7 @@ use std::env;
 use std::time::Instant;
 
 fn main() {
+    env_logger::init();
     match env::args().skip(1).next() {
         None => run_all(),
         Some(exercise) => match exercise.as_ref() {
@@ -26,6 +31,8 @@ fn main() {
             "d5p2" => run_one(day5::part2),
             "d6p1" => run_one(day6::part1),
             "d6p2" => run_one(day6::part2),
+            "d7p1" => run_one(day7::part1),
+            "d7p2" => run_one(day7::part2),
             _ => panic!("unknown exercise: {}", exercise),
         },
     }
@@ -46,6 +53,8 @@ fn run_all() {
     assert_eq!(4283952, day5::part2());
     assert_eq!(621125, day6::part1());
     assert_eq!(550, day6::part2());
+    assert_eq!(21000, day7::part1());
+    assert_eq!(61379886, day7::part2());
 
     println!("Elapsed time: {:?}", Instant::elapsed(&now));
 }

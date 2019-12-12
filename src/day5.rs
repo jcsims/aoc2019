@@ -1,29 +1,28 @@
 use crate::intcode;
+use crate::intcode::Program;
 use crate::util;
 
 pub fn part1() -> i32 {
-    let mut program = intcode::empty_program();
+    let mut program = Program::new(util::comma_separated_to_vec("data/d5.txt"));
 
-    program.state = util::comma_separated_to_vec("data/d5.txt");
-    program.input = 1;
+    Program::push_input(&mut program, 1);
 
     let final_state = intcode::run_program(&mut program);
 
-    match final_state.output.last() {
+    match Program::get_last_output(final_state) {
         Some(x) => return x.clone(),
         None => panic!("Bad output :("),
     }
 }
 
 pub fn part2() -> i32 {
-    let mut program = intcode::empty_program();
+    let mut program = Program::new(util::comma_separated_to_vec("data/d5.txt"));
 
-    program.state = util::comma_separated_to_vec("data/d5.txt");
-    program.input = 5;
+    Program::push_input(&mut program, 5);
 
     let final_state = intcode::run_program(&mut program);
 
-    match final_state.output.first() {
+    match Program::get_next_output(final_state) {
         Some(x) => return x.clone(),
         None => panic!("Bad output :("),
     }
