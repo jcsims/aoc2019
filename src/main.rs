@@ -1,6 +1,3 @@
-extern crate itertools;
-extern crate log;
-
 mod day1;
 mod day2;
 mod day3;
@@ -9,6 +6,7 @@ mod day5;
 mod day6;
 mod day7;
 mod day8;
+mod day9;
 mod intcode;
 mod util;
 
@@ -36,6 +34,8 @@ fn main() {
             "d7p2" => run_one(day7::part2),
             "d8p1" => run_one(day8::part1),
             "d8p2" => run_one(day8::part2),
+            "d9p1" => run_one(day9::part1),
+            "d9p2" => run_one(day9::part2),
             _ => panic!("unknown exercise: {}", exercise),
         },
     }

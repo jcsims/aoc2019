@@ -10,7 +10,7 @@ pub fn part1() -> i32 {
 
     let mut program = Program::new(alarm_state);
 
-    intcode::run_program(&mut program).state[0]
+    Program::get_state(intcode::run_program(&mut program), 0)
 }
 
 pub fn part2() -> i32 {
@@ -23,15 +23,14 @@ pub fn part2() -> i32 {
 
     'outer: for noun in 0..99 {
         for verb in 0..99 {
-            program.state[1] = noun;
-            program.state[2] = verb;
-            if intcode::run_program(&mut program).state[0] == 19690720 {
+            Program::set_state(&mut program, 1, noun);
+            Program::set_state(&mut program, 2, verb);
+            if Program::get_state(intcode::run_program(&mut program), 0) == 19690720 {
                 correct_noun = noun;
                 correct_verb = verb;
                 break 'outer;
             } else {
-                program.state = initial_state.to_vec();
-                program.pointer = 0;
+                program = Program::new(initial_state.to_vec());
             }
         }
     }
