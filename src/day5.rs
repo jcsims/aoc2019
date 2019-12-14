@@ -5,11 +5,11 @@ use crate::util;
 pub fn part1() -> i32 {
     let mut program = Program::new(util::comma_separated_to_vec("data/d5.txt"));
 
-    Program::push_input(&mut program, 1);
+    intcode::push_input(&mut program, 1);
 
     let final_state = intcode::run_program(&mut program);
 
-    match Program::get_last_output(final_state) {
+    match intcode::get_last_output(final_state) {
         Some(x) => return x.clone(),
         None => panic!("Bad output :("),
     }
@@ -18,11 +18,11 @@ pub fn part1() -> i32 {
 pub fn part2() -> i32 {
     let mut program = Program::new(util::comma_separated_to_vec("data/d5.txt"));
 
-    Program::push_input(&mut program, 5);
+    intcode::push_input(&mut program, 5);
 
     let final_state = intcode::run_program(&mut program);
 
-    match Program::get_next_output(final_state) {
+    match intcode::get_next_output(final_state) {
         Some(x) => return x.clone(),
         None => panic!("Bad output :("),
     }

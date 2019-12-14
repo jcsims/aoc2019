@@ -1,5 +1,5 @@
 use crate::intcode;
-use crate::intcode::Program;
+use crate::intcode::{ParameterMode, Program};
 use crate::util;
 
 pub fn part1() -> i32 {
@@ -10,7 +10,11 @@ pub fn part1() -> i32 {
 
     let mut program = Program::new(alarm_state);
 
-    Program::get_state(intcode::run_program(&mut program), 0)
+    intcode::get_state(
+        intcode::run_program(&mut program),
+        0,
+        ParameterMode::Immediate,
+    )
 }
 
 pub fn part2() -> i32 {
@@ -23,9 +27,14 @@ pub fn part2() -> i32 {
 
     'outer: for noun in 0..99 {
         for verb in 0..99 {
-            Program::set_state(&mut program, 1, noun);
-            Program::set_state(&mut program, 2, verb);
-            if Program::get_state(intcode::run_program(&mut program), 0) == 19690720 {
+            intcode::set_state(&mut program, 1, noun);
+            intcode::set_state(&mut program, 2, verb);
+            if intcode::get_state(
+                intcode::run_program(&mut program),
+                0,
+                ParameterMode::Immediate,
+            ) == 19690720
+            {
                 correct_noun = noun;
                 correct_verb = verb;
                 break 'outer;

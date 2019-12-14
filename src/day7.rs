@@ -1,5 +1,4 @@
-use crate::intcode;
-use crate::intcode::Program;
+use crate::intcode::{get_next_output, push_input, run_program, HaltStatus, Program};
 use crate::util;
 use itertools::Itertools;
 use log::trace;
@@ -32,14 +31,14 @@ fn run_phase_sequence(program: &Program, sequence: Vec<i32>, input: i32) -> (Pro
     let mut amp_e = program.clone();
 
     // Add the initial sequence as input
-    Program::push_input(&mut amp_a, sequence[0]);
-    Program::push_input(&mut amp_b, sequence[1]);
-    Program::push_input(&mut amp_c, sequence[2]);
-    Program::push_input(&mut amp_d, sequence[3]);
-    Program::push_input(&mut amp_e, sequence[4]);
+    push_input(&mut amp_a, sequence[0]);
+    push_input(&mut amp_b, sequence[1]);
+    push_input(&mut amp_c, sequence[2]);
+    push_input(&mut amp_d, sequence[3]);
+    push_input(&mut amp_e, sequence[4]);
 
     // Insert the initial machine input
-    Program::push_input(&mut amp_a, input);
+    push_input(&mut amp_a, input);
 
     // We need to grab our final output
     let final_output;
@@ -47,44 +46,44 @@ fn run_phase_sequence(program: &Program, sequence: Vec<i32>, input: i32) -> (Pro
     loop {
         trace!("Using sequence: {:?}", sequence);
 
-        let a_output = Program::get_next_output(intcode::run_program(&mut amp_a)).unwrap();
+        let a_output = get_next_output(run_program(&mut amp_a)).unwrap();
 
         trace!("amp a output: {}", a_output);
         trace!("amp a halt status: {:?}", amp_a.halt_status.unwrap());
 
-        Program::push_input(&mut amp_b, a_output);
+        push_input(&mut amp_b, a_output);
 
-        let b_output = Program::get_next_output(intcode::run_program(&mut amp_b)).unwrap();
+        let b_output = get_next_output(run_program(&mut amp_b)).unwrap();
 
         trace!("amp b output: {}", b_output);
         trace!("amp b halt status: {:?}", amp_b.halt_status.unwrap());
 
-        Program::push_input(&mut amp_c, b_output);
+        push_input(&mut amp_c, b_output);
 
-        let c_output = Program::get_next_output(intcode::run_program(&mut amp_c)).unwrap();
+        let c_output = get_next_output(run_program(&mut amp_c)).unwrap();
 
         trace!("amp c output: {}", c_output);
         trace!("amp c halt status: {:?}", amp_c.halt_status.unwrap());
 
-        Program::push_input(&mut amp_d, c_output);
+        push_input(&mut amp_d, c_output);
 
-        let d_output = Program::get_next_output(intcode::run_program(&mut amp_d)).unwrap();
+        let d_output = get_next_output(run_program(&mut amp_d)).unwrap();
 
         trace!("amp d output: {}", d_output);
         trace!("amp d halt status: {:?}", amp_d.halt_status.unwrap());
 
-        Program::push_input(&mut amp_e, d_output);
+        push_input(&mut amp_e, d_output);
 
-        let e_output = Program::get_next_output(intcode::run_program(&mut amp_e)).unwrap();
+        let e_output = get_next_output(run_program(&mut amp_e)).unwrap();
 
         trace!("amp e output: {}", e_output);
         trace!("amp e halt status: {:?}", amp_e.halt_status.unwrap());
 
-        if let Some(intcode::HaltStatus::Terminated) = amp_e.halt_status {
+        if let Some(HaltStatus::Terminated) = amp_e.halt_status {
             final_output = e_output;
             break;
         } else {
-            Program::push_input(&mut amp_a, e_output);
+            push_input(&mut amp_a, e_output);
         }
     }
 

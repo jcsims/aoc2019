@@ -12,9 +12,14 @@ pub struct Program {
     pub halt_status: Option<HaltStatus>,
 }
 
-enum ParameterMode {
+#[derive(Debug, PartialEq, Eq)]
+pub enum ParameterMode {
+    // (1) The Parameter is interpreted as a value
     Immediate,
+    // (0) The parameter is interpreted as a position (default if not set)
     Position,
+    // (2) The address a relative mode parameter refers to is itself plus
+    // the current relative base
     Relative,
 }
 
@@ -24,16 +29,35 @@ pub enum HaltStatus {
     WaitingInput,
 }
 
-// Parameters that an instruction writes to will never be in immediate mode.
+// Parameters that an instruction writes to will never be in immediate
+// mode.
+#[derive(Debug)]
 enum OpCode {
+    // (01) Add parameter 1 and 2, write to parameter 3
     Add(ParameterMode, ParameterMode, ParameterMode),
+    // (02) Multiply parameter 1 and 2, write to parameter 3
     Multiply(ParameterMode, ParameterMode, ParameterMode),
-    Write(ParameterMode),
+    // (03) Write the next input to parameter 1
+    Input(ParameterMode),
+    // (04) Write parameter 1 to output
     Output(ParameterMode),
+    // (05) if the first parameter is non-zero, it sets the instruction
+    // pointer to the value from the second parameter
     JumpIfTrue(ParameterMode, ParameterMode),
+    // (06) if the first parameter is zero, it sets the instruction pointer
+    // to the value from the second parameter
     JumpIfFalse(ParameterMode, ParameterMode),
+    // (07) if the first parameter is less than the second parameter, it
+    // stores 1 in the position given by the third
+    // parameter. Otherwise, it stores 0
     LessThan(ParameterMode, ParameterMode, ParameterMode),
+    // (08) if the first parameter is equal to the second parameter, it
+    // stores 1 in the position given by the third
+    // parameter. Otherwise, it stores 0
     Equals(ParameterMode, ParameterMode, ParameterMode),
+    // (09) Adjust the relative base by parameter 1
+    AdjustRelBase(ParameterMode),
+    // (99)
     Stop,
 }
 
@@ -48,62 +72,80 @@ impl Program {
             halt_status: None,
         }
     }
+}
 
-    pub fn push_input(program: &mut Program, input: i32) {
-        program.input.push_back(input);
-    }
+pub fn push_input(program: &mut Program, input: i32) {
+    program.input.push_back(input);
+}
 
-    pub fn has_input(program: &Program) -> bool {
-        program.input.front().is_some()
-    }
+pub fn has_input(program: &Program) -> bool {
+    program.input.front().is_some()
+}
 
-    pub fn get_next_input(program: &mut Program) -> Option<i32> {
-        program.input.pop_front()
-    }
+pub fn get_next_input(program: &mut Program) -> Option<i32> {
+    program.input.pop_front()
+}
 
-    pub fn push_output(program: &mut Program, output: i32) {
-        program.output.push_back(output);
-    }
+pub fn push_output(program: &mut Program, output: i32) {
+    program.output.push_back(output);
+}
 
-    pub fn get_next_output(program: &mut Program) -> Option<i32> {
-        program.output.pop_front()
-    }
+pub fn get_next_output(program: &mut Program) -> Option<i32> {
+    program.output.pop_front()
+}
 
-    pub fn get_last_output(program: &mut Program) -> Option<i32> {
-        program.output.pop_back()
-    }
+pub fn get_last_output(program: &mut Program) -> Option<i32> {
+    program.output.pop_back()
+}
 
-    pub fn get_state(program: &Program, pointer: i32) -> i32 {
-        if pointer < 0 {
-            panic!("Invalid pointer (less than zero): {}", pointer);
-        }
-
-        match program.state.get(&pointer) {
-            Some(x) => {
-                trace!("getting state, key: {}, value: {}", pointer, x);
-                *x
+pub fn get_state(program: &Program, pointer: i32, pm: ParameterMode) -> i32 {
+    match pm {
+        ParameterMode::Immediate => {
+            if pointer < 0 {
+                panic!("Invalid pointer (less than zero): {}", pointer);
             }
-            None => 0,
-        }
-    }
 
-    pub fn get_relative_state(program: &Program, pointer: i32) -> i32 {
-        let relative_pointer = program.relative_base + pointer;
-        if relative_pointer < 0 {
-            panic!(
-                "Invalid (relative) pointer (less than zero)! pointer: {}, relative_base: {}",
-                pointer, program.relative_base
-            );
+            match program.state.get(&pointer) {
+                Some(x) => {
+                    trace!("getting state, key: {}, value: {}", pointer, x);
+                    *x
+                }
+                None => 0,
+            }
         }
-        match program.state.get(&relative_pointer) {
-            Some(x) => *x,
-            None => 0,
+        ParameterMode::Position => {
+            trace!("getting position state, pointer: {}", pointer);
+            get_state(
+                program,
+                get_state(program, pointer, ParameterMode::Immediate),
+                ParameterMode::Immediate,
+            )
+        }
+        ParameterMode::Relative => {
+            trace!("getting relative state, pointer: {}", pointer);
+            get_state(
+                program,
+                get_state(program, pointer, ParameterMode::Immediate) + program.relative_base,
+                ParameterMode::Immediate,
+            )
         }
     }
+}
 
-    pub fn set_state(program: &mut Program, key: i32, value: i32) {
-        program.state.insert(key, value);
+pub fn get_destination(program: &Program, pointer: i32, pm: ParameterMode) -> i32 {
+    match pm {
+        ParameterMode::Immediate => {
+            panic!("Tried to get a write destination using immediate mode!")
+        }
+        ParameterMode::Position => get_state(program, pointer, ParameterMode::Immediate),
+        ParameterMode::Relative => {
+            get_state(program, pointer, ParameterMode::Immediate) + program.relative_base
+        }
     }
+}
+
+pub fn set_state(program: &mut Program, key: i32, value: i32) {
+    program.state.insert(key, value);
 }
 
 pub fn run_program(program: &mut Program) -> &mut Program {
@@ -111,16 +153,20 @@ pub fn run_program(program: &mut Program) -> &mut Program {
         return program;
     }
 
-    match parse_opcode(Program::get_state(program, program.pointer)) {
+    match parse_opcode(get_state(
+        program,
+        program.pointer,
+        ParameterMode::Immediate,
+    )) {
         OpCode::Stop => {
             program.halt_status = Some(HaltStatus::Terminated);
             program
         }
         OpCode::Add(x, y, z) => run_add_instruction(program, x, y, z),
         OpCode::Multiply(x, y, z) => run_mult_instruction(program, x, y, z),
-        OpCode::Write(x) => {
-            if Program::has_input(&program) {
-                run_save(program, x)
+        OpCode::Input(x) => {
+            if has_input(&program) {
+                run_input(program, x)
             } else {
                 program.halt_status = Some(HaltStatus::WaitingInput);
                 program
@@ -131,6 +177,7 @@ pub fn run_program(program: &mut Program) -> &mut Program {
         OpCode::JumpIfFalse(x, y) => run_jump(program, false, x, y),
         OpCode::LessThan(x, y, z) => run_less_than(program, x, y, z),
         OpCode::Equals(x, y, z) => run_equals(program, x, y, z),
+        OpCode::AdjustRelBase(x) => run_adjust_relative_base(program, x),
     }
 }
 
@@ -140,28 +187,13 @@ fn run_add_instruction(
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
 ) -> &mut Program {
-    let operand_1 = match op1_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 1))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
-    let operand_2 = match op2_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 2))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 2),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 2),
-    };
+    if op3_mode == ParameterMode::Immediate {
+        panic!("Tried to get a write destination using immediate mode!")
+    }
 
-    let destination = match op3_mode {
-        ParameterMode::Position => Program::get_state(program, program.pointer + 3),
-        ParameterMode::Immediate => {
-            panic!("Tried to get a write destination using immediate mode!")
-        }
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 3),
-    };
+    let operand_1 = get_state(program, program.pointer + 1, op1_mode);
+    let operand_2 = get_state(program, program.pointer + 2, op2_mode);
+    let destination = get_destination(program, program.pointer + 3, op3_mode);
 
     trace!(
         "Adding! operand_1: {}, operand_2: {}, destination: {}",
@@ -183,28 +215,9 @@ fn run_mult_instruction(
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
 ) -> &mut Program {
-    let operand_1 = match op1_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 1))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
-    let operand_2 = match op2_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 2))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 2),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 2),
-    };
-
-    let destination = match op3_mode {
-        ParameterMode::Position => Program::get_state(program, program.pointer + 3),
-        ParameterMode::Immediate => {
-            panic!("Tried to get a write destination using immediate mode!")
-        }
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 3),
-    };
+    let operand_1 = get_state(program, program.pointer + 1, op1_mode);
+    let operand_2 = get_state(program, program.pointer + 2, op2_mode);
+    let destination = get_destination(program, program.pointer + 3, op3_mode);
 
     trace!(
         "Multiplying! operand_1: {}, operand_2: {}, destination: {}",
@@ -219,16 +232,10 @@ fn run_mult_instruction(
     run_program(program)
 }
 
-fn run_save(program: &mut Program, op1_mode: ParameterMode) -> &mut Program {
-    let destination = match op1_mode {
-        ParameterMode::Position => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Immediate => {
-            panic!("Tried to get a write destination using immediate mode!")
-        }
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
+fn run_input(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
+    let destination = get_destination(program, program.pointer + 1, op_mode);
 
-    let input = Program::get_next_input(program).unwrap();
+    let input = get_next_input(program).unwrap();
 
     trace!(
         "Taking input! destination: {}, input: {}",
@@ -244,17 +251,11 @@ fn run_save(program: &mut Program, op1_mode: ParameterMode) -> &mut Program {
 }
 
 fn run_output(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
-    let output = match op_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 1))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
+    let output = get_state(program, program.pointer + 1, op_mode);
 
     trace!("Pushing output: {}", output);
 
-    Program::push_output(program, output);
+    push_output(program, output);
 
     program.pointer += 2;
 
@@ -267,20 +268,8 @@ fn run_jump(
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
 ) -> &mut Program {
-    let operand_1 = match op1_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 1))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
-    let operand_2 = match op2_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 2))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 2),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 2),
-    };
+    let operand_1 = get_state(program, program.pointer + 1, op1_mode);
+    let operand_2 = get_state(program, program.pointer + 2, op2_mode);
 
     match operand_1 {
         0 if !jump_if => program.pointer = operand_2,
@@ -297,28 +286,9 @@ fn run_less_than(
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
 ) -> &mut Program {
-    let operand_1 = match op1_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 1))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
-    let operand_2 = match op2_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 2))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 2),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 2),
-    };
-
-    let destination = match op3_mode {
-        ParameterMode::Position => Program::get_state(program, program.pointer + 3),
-        ParameterMode::Immediate => {
-            panic!("Tried to get a write destination using immediate mode!")
-        }
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 3),
-    };
+    let operand_1 = get_state(program, program.pointer + 1, op1_mode);
+    let operand_2 = get_state(program, program.pointer + 2, op2_mode);
+    let destination = get_destination(program, program.pointer + 3, op3_mode);
 
     if operand_1 < operand_2 {
         program.state.insert(destination, 1);
@@ -336,28 +306,9 @@ fn run_equals(
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
 ) -> &mut Program {
-    let operand_1 = match op1_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 1))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 1),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 1),
-    };
-    let operand_2 = match op2_mode {
-        ParameterMode::Position => {
-            Program::get_state(program, Program::get_state(program, program.pointer + 2))
-        }
-        ParameterMode::Immediate => Program::get_state(program, program.pointer + 2),
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 2),
-    };
-
-    let destination = match op3_mode {
-        ParameterMode::Position => Program::get_state(program, program.pointer + 3),
-        ParameterMode::Immediate => {
-            panic!("Tried to get a write destination using immediate mode!")
-        }
-        ParameterMode::Relative => Program::get_relative_state(program, program.pointer + 3),
-    };
+    let operand_1 = get_state(program, program.pointer + 1, op1_mode);
+    let operand_2 = get_state(program, program.pointer + 2, op2_mode);
+    let destination = get_destination(program, program.pointer + 3, op3_mode);
 
     if operand_1 == operand_2 {
         program.state.insert(destination, 1);
@@ -370,14 +321,32 @@ fn run_equals(
     run_program(program)
 }
 
+fn run_adjust_relative_base(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
+    let operand = get_state(program, program.pointer + 1, op_mode);
+
+    program.relative_base += operand;
+
+    trace!(
+        "Adjusting relative base by: {}, new relative base: {}",
+        operand,
+        program.relative_base
+    );
+
+    program.pointer += 2;
+
+    run_program(program)
+}
+
 ////////////////////////////////////////////////////////////////
 // Parsing
+
+// Opcodes are 2-digit values, then parameter modes for any parameters
 
 fn parse_opcode(opcode: i32) -> OpCode {
     let mut digits = util::digits(opcode);
     digits.reverse();
 
-    match digits.first() {
+    let parsed = match digits.first() {
         None => panic!("Unable to parse opcode!"),
         Some(1) => match digits.len() {
             5 => OpCode::Add(
@@ -427,8 +396,8 @@ fn parse_opcode(opcode: i32) -> OpCode {
             _ => panic!("Invalid opcode: {}", opcode),
         },
         Some(3) => match digits.len() {
-            3 => OpCode::Write(parse_mode(digits[2])),
-            2 | 1 => OpCode::Write(ParameterMode::Position),
+            3 => OpCode::Input(parse_mode(digits[2])),
+            2 | 1 => OpCode::Input(ParameterMode::Position),
             _ => panic!("Invalid opcode: {}", opcode),
         },
         Some(4) => match digits.len() {
@@ -496,10 +465,18 @@ fn parse_opcode(opcode: i32) -> OpCode {
         },
         Some(9) => match digits.get(1) {
             Some(9) => OpCode::Stop,
-            _ => panic!("Invalid opcode: {}", opcode),
+            _ => match digits.len() {
+                3 => OpCode::AdjustRelBase(parse_mode(digits[2])),
+                2 | 1 => OpCode::AdjustRelBase(ParameterMode::Position),
+                _ => panic!("Invalid opcode: {}", opcode),
+            },
         },
         Some(_) => panic!("Invalid opcode: {}", opcode),
-    }
+    };
+
+    trace!("parsed opcode \"{}\" as: {:?}", opcode, parsed);
+
+    parsed
 }
 
 fn parse_mode(mode: i32) -> ParameterMode {
@@ -525,19 +502,19 @@ fn day2_intcode_test() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     assert_eq!(
-        run_program(&mut Program::new(vec!(1, 0, 0, 0, 99))).state,
+        run_program(&mut Program::new(vec![1, 0, 0, 0, 99])).state,
         vec_to_map(vec!(2, 0, 0, 0, 99))
     );
     assert_eq!(
-        run_program(&mut Program::new(vec!(2, 3, 0, 3, 99))).state,
+        run_program(&mut Program::new(vec![2, 3, 0, 3, 99])).state,
         vec_to_map(vec!(2, 3, 0, 6, 99))
     );
     assert_eq!(
-        run_program(&mut Program::new(vec!(2, 4, 4, 5, 99, 0))).state,
+        run_program(&mut Program::new(vec![2, 4, 4, 5, 99, 0])).state,
         vec_to_map(vec!(2, 4, 4, 5, 99, 9801))
     );
     assert_eq!(
-        run_program(&mut Program::new(vec!(1, 1, 1, 4, 99, 5, 6, 0, 99))).state,
+        run_program(&mut Program::new(vec![1, 1, 1, 4, 99, 5, 6, 0, 99])).state,
         vec_to_map(vec!(30, 1, 1, 4, 2, 5, 6, 0, 99))
     );
 }
@@ -547,22 +524,16 @@ fn basic_io_test() {
     let _ = env_logger::builder().is_test(true).try_init();
 
     let mut input = Program::new(vec![3, 0, 4, 0, 99]);
-    Program::push_input(&mut input, 1);
+    push_input(&mut input, 1);
 
     trace!("Program: {:?}", input);
 
-    assert_eq!(
-        1,
-        Program::get_next_output(run_program(&mut input)).unwrap()
-    );
+    assert_eq!(1, get_next_output(run_program(&mut input)).unwrap());
 
     input = Program::new(vec![3, 0, 4, 0, 99]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
 
-    assert_eq!(
-        42,
-        Program::get_next_output(run_program(&mut input)).unwrap()
-    );
+    assert_eq!(42, get_next_output(run_program(&mut input)).unwrap());
 }
 
 #[test]
@@ -571,12 +542,20 @@ fn opcode_mode_test() {
 
     assert_eq!(
         1101,
-        Program::get_state(run_program(&mut Program::new(vec![1101, 100, -1, 4, 0])), 0)
+        get_state(
+            run_program(&mut Program::new(vec![1101, 100, -1, 4, 0])),
+            0,
+            ParameterMode::Immediate
+        )
     );
 
     assert_eq!(
         99,
-        Program::get_state(run_program(&mut Program::new(vec![1002, 4, 3, 4, 33])), 4)
+        get_state(
+            run_program(&mut Program::new(vec![1002, 4, 3, 4, 33])),
+            4,
+            ParameterMode::Immediate
+        )
     )
 }
 
@@ -586,49 +565,49 @@ fn four_more_opcodes() {
 
     // equals
     let mut input = Program::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
-    Program::push_input(&mut input, 8);
+    push_input(&mut input, 8);
     assert_eq!(1, run_program(&mut input).output[0]);
 
     input = Program::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
     assert_eq!(0, run_program(&mut input).output[0]);
 
     input = Program::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
     assert_eq!(0, run_program(&mut input).output[0]);
 
     input = Program::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
-    Program::push_input(&mut input, 8);
+    push_input(&mut input, 8);
     assert_eq!(1, run_program(&mut input).output[0]);
 
     // less than
     input = Program::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
     assert_eq!(0, run_program(&mut input).output[0]);
 
     input = Program::new(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8]);
-    Program::push_input(&mut input, 2);
+    push_input(&mut input, 2);
     assert_eq!(1, run_program(&mut input).output[0]);
 
     input = Program::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
     assert_eq!(0, run_program(&mut input).output[0]);
 
     input = Program::new(vec![3, 3, 1107, -1, 8, 3, 4, 3, 99]);
-    Program::push_input(&mut input, 4);
+    push_input(&mut input, 4);
     assert_eq!(1, run_program(&mut input).output[0]);
 
     // Jumps
     input = Program::new(vec![
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
     assert_eq!(1, run_program(&mut input).output[0]);
 
     input = Program::new(vec![
         3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
     ]);
-    Program::push_input(&mut input, 0);
+    push_input(&mut input, 0);
 
     assert_eq!(0, run_program(&mut input).output[0]);
 
@@ -638,7 +617,7 @@ fn four_more_opcodes() {
         1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20,
         1105, 1, 46, 98, 99,
     ]);
-    Program::push_input(&mut input, 4);
+    push_input(&mut input, 4);
     assert_eq!(999, run_program(&mut input).output[0]);
 
     input = Program::new(vec![
@@ -646,7 +625,7 @@ fn four_more_opcodes() {
         1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20,
         1105, 1, 46, 98, 99,
     ]);
-    Program::push_input(&mut input, 8);
+    push_input(&mut input, 8);
     assert_eq!(1000, run_program(&mut input).output[0]);
 
     input = Program::new(vec![
@@ -654,6 +633,26 @@ fn four_more_opcodes() {
         1002, 21, 125, 20, 4, 20, 1105, 1, 46, 104, 999, 1105, 1, 46, 1101, 1000, 1, 20, 4, 20,
         1105, 1, 46, 98, 99,
     ]);
-    Program::push_input(&mut input, 42);
+    push_input(&mut input, 42);
     assert_eq!(1001, run_program(&mut input).output[0]);
+}
+
+#[test]
+fn relative_test() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let mut program = Program::new(vec![
+        109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
+    ]);
+
+    let program = run_program(&mut program);
+
+    for (expected, produced) in vec![
+        109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
+    ]
+    .iter()
+    .zip((&program).output.iter())
+    {
+        assert_eq!(expected, produced);
+    }
 }
