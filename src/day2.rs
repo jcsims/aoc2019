@@ -2,7 +2,7 @@ use crate::intcode;
 use crate::intcode::{ParameterMode, Program};
 use crate::util;
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let mut alarm_state = util::comma_separated_to_vec("data/d2.txt");
 
     alarm_state[1] = 12;
@@ -17,7 +17,7 @@ pub fn part1() -> i32 {
     )
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let initial_state = util::comma_separated_to_vec("data/d2.txt");
 
     let mut program = Program::new(initial_state.to_vec());

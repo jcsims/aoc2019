@@ -7,7 +7,7 @@ const ORIGIN: Point = Point {
     traveled: 0,
 };
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let paths = load_paths("data/d3.txt");
 
     let first_points = points_from_path(ORIGIN, paths[0].to_owned());
@@ -19,7 +19,7 @@ pub fn part1() -> i32 {
     distance
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let paths = load_paths("data/d3.txt");
 
     assert_eq!(2, paths.len());
@@ -32,9 +32,9 @@ pub fn part2() -> i32 {
 
 #[derive(Debug, Copy, Clone)]
 struct Point {
-    x: i32,
-    y: i32,
-    traveled: i32,
+    x: i64,
+    y: i64,
+    traveled: i64,
 }
 
 impl PartialEq for Point {
@@ -63,7 +63,7 @@ enum Direction {
 #[derive(Debug, PartialEq, Copy, Clone)]
 struct Vector {
     direction: Direction,
-    distance: i32,
+    distance: i64,
 }
 
 fn closest_intersection(
@@ -83,7 +83,7 @@ fn closest_intersection(
 fn shortest_taxi_cab_path_to_intersection(
     first_path: HashSet<Point>,
     second_path: HashSet<Point>,
-) -> i32 {
+) -> i64 {
     let mut intersections = Vec::new();
 
     for point in first_path.into_iter() {
@@ -101,7 +101,7 @@ fn shortest_taxi_cab_path_to_intersection(
     intersections[0]
 }
 
-fn distance_between(first: &Point, second: &Point) -> i32 {
+fn distance_between(first: &Point, second: &Point) -> i64 {
     (first.x - second.x).abs() + (first.y - second.y).abs()
 }
 
@@ -177,7 +177,7 @@ fn parse_path(path: &str) -> Vector {
         x => panic!("unknown direction in data: {}", x),
     };
 
-    let distance = chars.collect::<String>().parse::<i32>().unwrap();
+    let distance = chars.collect::<String>().parse::<i64>().unwrap();
 
     Vector {
         direction: direction,

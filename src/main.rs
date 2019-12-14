@@ -60,11 +60,12 @@ fn run_all() {
     assert_eq!(61379886, day7::part2(), "day7::part2 failed!");
     assert_eq!(1792, day8::part1(), "day8::part1 failed!");
     assert_eq!(42, day8::part2(), "day8::part2 failed!");
+    assert_eq!(2752191671, day9::part1(), "day9::part1 failed!");
 
     println!("Elapsed time: {:?}", Instant::elapsed(&now));
 }
 
-fn run_one(exercise: fn() -> i32) {
+fn run_one(exercise: fn() -> i64) {
     let now = Instant::now();
 
     println!("{}", exercise());

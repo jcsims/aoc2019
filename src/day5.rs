@@ -2,7 +2,7 @@ use crate::intcode;
 use crate::intcode::Program;
 use crate::util;
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let mut program = Program::new(util::comma_separated_to_vec("data/d5.txt"));
 
     intcode::push_input(&mut program, 1);
@@ -15,7 +15,7 @@ pub fn part1() -> i32 {
     }
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let mut program = Program::new(util::comma_separated_to_vec("data/d5.txt"));
 
     intcode::push_input(&mut program, 5);

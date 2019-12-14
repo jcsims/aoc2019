@@ -4,11 +4,11 @@ use std::collections::{HashMap, VecDeque};
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub output: VecDeque<i32>,
-    pub state: HashMap<i32, i32>,
-    pub pointer: i32,
-    pub relative_base: i32,
-    pub input: VecDeque<i32>,
+    pub output: VecDeque<i64>,
+    pub state: HashMap<i64, i64>,
+    pub pointer: i64,
+    pub relative_base: i64,
+    pub input: VecDeque<i64>,
     pub halt_status: Option<HaltStatus>,
 }
 
@@ -62,7 +62,7 @@ enum OpCode {
 }
 
 impl Program {
-    pub fn new(state: Vec<i32>) -> Program {
+    pub fn new(state: Vec<i64>) -> Program {
         Program {
             input: VecDeque::new(),
             output: VecDeque::new(),
@@ -74,7 +74,7 @@ impl Program {
     }
 }
 
-pub fn push_input(program: &mut Program, input: i32) {
+pub fn push_input(program: &mut Program, input: i64) {
     program.input.push_back(input);
 }
 
@@ -82,23 +82,23 @@ pub fn has_input(program: &Program) -> bool {
     program.input.front().is_some()
 }
 
-pub fn get_next_input(program: &mut Program) -> Option<i32> {
+pub fn get_next_input(program: &mut Program) -> Option<i64> {
     program.input.pop_front()
 }
 
-pub fn push_output(program: &mut Program, output: i32) {
+pub fn push_output(program: &mut Program, output: i64) {
     program.output.push_back(output);
 }
 
-pub fn get_next_output(program: &mut Program) -> Option<i32> {
+pub fn get_next_output(program: &mut Program) -> Option<i64> {
     program.output.pop_front()
 }
 
-pub fn get_last_output(program: &mut Program) -> Option<i32> {
+pub fn get_last_output(program: &mut Program) -> Option<i64> {
     program.output.pop_back()
 }
 
-pub fn get_state(program: &Program, pointer: i32, pm: ParameterMode) -> i32 {
+pub fn get_state(program: &Program, pointer: i64, pm: ParameterMode) -> i64 {
     match pm {
         ParameterMode::Immediate => {
             if pointer < 0 {
@@ -132,7 +132,7 @@ pub fn get_state(program: &Program, pointer: i32, pm: ParameterMode) -> i32 {
     }
 }
 
-pub fn get_destination(program: &Program, pointer: i32, pm: ParameterMode) -> i32 {
+pub fn get_destination(program: &Program, pointer: i64, pm: ParameterMode) -> i64 {
     match pm {
         ParameterMode::Immediate => {
             panic!("Tried to get a write destination using immediate mode!")
@@ -144,7 +144,7 @@ pub fn get_destination(program: &Program, pointer: i32, pm: ParameterMode) -> i3
     }
 }
 
-pub fn set_state(program: &mut Program, key: i32, value: i32) {
+pub fn set_state(program: &mut Program, key: i64, value: i64) {
     program.state.insert(key, value);
 }
 
@@ -342,7 +342,7 @@ fn run_adjust_relative_base(program: &mut Program, op_mode: ParameterMode) -> &m
 
 // Opcodes are 2-digit values, then parameter modes for any parameters
 
-fn parse_opcode(opcode: i32) -> OpCode {
+fn parse_opcode(opcode: i64) -> OpCode {
     let mut digits = util::digits(opcode);
     digits.reverse();
 
@@ -479,7 +479,7 @@ fn parse_opcode(opcode: i32) -> OpCode {
     parsed
 }
 
-fn parse_mode(mode: i32) -> ParameterMode {
+fn parse_mode(mode: i64) -> ParameterMode {
     match mode {
         0 => ParameterMode::Position,
         1 => ParameterMode::Immediate,
@@ -488,11 +488,11 @@ fn parse_mode(mode: i32) -> ParameterMode {
     }
 }
 
-fn vec_to_map(vec: Vec<i32>) -> HashMap<i32, i32> {
+fn vec_to_map(vec: Vec<i64>) -> HashMap<i64, i64> {
     let mut hash_state = HashMap::new();
 
     for (i, val) in vec.iter().enumerate() {
-        hash_state.insert(i as i32, val.clone());
+        hash_state.insert(i as i64, val.clone());
     }
     hash_state
 }
@@ -645,7 +645,7 @@ fn relative_test() {
         109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
     ]);
 
-    let program = run_program(&mut program);
+    run_program(&mut program);
 
     for (expected, produced) in vec![
         109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
@@ -655,4 +655,24 @@ fn relative_test() {
     {
         assert_eq!(expected, produced);
     }
+}
+
+#[test]
+fn large_numbers_test() {
+    let _ = env_logger::builder().is_test(true).try_init();
+
+    let mut program = Program::new(vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0]);
+
+    run_program(&mut program);
+
+    assert_eq!(
+        16,
+        util::digits(get_next_output(&mut program).unwrap()).len()
+    );
+
+    program = Program::new(vec![104, 1125899906842624, 99]);
+
+    run_program(&mut program);
+
+    assert_eq!(1125899906842624, get_next_output(&mut program).unwrap());
 }

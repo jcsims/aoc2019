@@ -2,7 +2,7 @@ use crate::util;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let mut orbit_relationships = util::lines_from_path("data/d6.txt")
         .map(|x| match x {
             Ok(orbit_string) => parse_orbit(&orbit_string),
@@ -15,7 +15,7 @@ pub fn part1() -> i32 {
     orbit_checksum(orbits)
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let mut orbit_relationships = util::lines_from_path("data/d6.txt")
         .map(|x| match x {
             Ok(orbit_string) => parse_orbit(&orbit_string),
@@ -38,7 +38,7 @@ struct OrbitRelationship {
 
 #[derive(Debug, Clone)]
 struct Orbit {
-    depth: i32,
+    depth: i64,
     object: String,
     orbits: String,
 }
@@ -100,7 +100,7 @@ fn build_orbits(orbit_relationships: &mut HashSet<OrbitRelationship>) -> HashSet
     orbits
 }
 
-fn orbit_checksum(orbits: HashSet<Orbit>) -> i32 {
+fn orbit_checksum(orbits: HashSet<Orbit>) -> i64 {
     orbits.iter().fold(0, |acc, x| acc + x.depth)
 }
 
@@ -119,7 +119,7 @@ fn ancestors_for_orbit(orbits: &HashSet<Orbit>, orbit: &Orbit) -> Vec<Orbit> {
     ancestors
 }
 
-fn orbital_transfers(orbits: HashSet<Orbit>) -> i32 {
+fn orbital_transfers(orbits: HashSet<Orbit>) -> i64 {
     let you = orbits.get(&Orbit::new("YOU")).unwrap();
     let santa = orbits.get(&Orbit::new("SAN")).unwrap();
 

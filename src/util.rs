@@ -9,7 +9,7 @@ pub fn lines_from_path(filepath: &str) -> io::Lines<std::io::BufReader<std::fs::
     BufReader::new(file).lines()
 }
 
-pub fn comma_separated_to_vec(filepath: &str) -> Vec<i32> {
+pub fn comma_separated_to_vec(filepath: &str) -> Vec<i64> {
     let mut file = File::open(Path::new(filepath)).unwrap();
 
     let mut contents = String::new();
@@ -17,7 +17,7 @@ pub fn comma_separated_to_vec(filepath: &str) -> Vec<i32> {
 
     contents
         .split(',')
-        .map(|x| match x.trim().parse::<i32>() {
+        .map(|x| match x.trim().parse::<i64>() {
             Ok(parsed) => parsed,
             Err(err) => {
                 println!("Error parsing string: {} with err: {}", x, err);
@@ -38,8 +38,8 @@ pub fn file_as_string(filepath: &str) -> String {
     }
 }
 
-pub fn digits(input: i32) -> Vec<i32> {
-    let mut digits: Vec<i32> = Vec::new();
+pub fn digits(input: i64) -> Vec<i64> {
+    let mut digits: Vec<i64> = Vec::new();
 
     let mut temp = input;
 

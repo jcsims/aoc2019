@@ -1,6 +1,6 @@
 use crate::util;
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let lower = 124075;
     let upper = 580769;
 
@@ -20,7 +20,7 @@ pub fn part1() -> i32 {
     passwords
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let lower = 124075;
     let upper = 580769;
 
@@ -40,7 +40,7 @@ pub fn part2() -> i32 {
     passwords
 }
 
-fn doubled_digits(input: &Vec<i32>) -> bool {
+fn doubled_digits(input: &Vec<i64>) -> bool {
     let length = input.len();
 
     let mut deduped = input.clone();
@@ -50,7 +50,7 @@ fn doubled_digits(input: &Vec<i32>) -> bool {
     length != deduped.len()
 }
 
-fn strictly_doubled_digits(input: &Vec<i32>) -> bool {
+fn strictly_doubled_digits(input: &Vec<i64>) -> bool {
     let mut input_iter = input.iter();
 
     let mut first = input_iter.next().unwrap();
@@ -88,7 +88,7 @@ fn strictly_doubled_digits(input: &Vec<i32>) -> bool {
     false
 }
 
-fn digits_in_order(input: &Vec<i32>) -> bool {
+fn digits_in_order(input: &Vec<i64>) -> bool {
     input
         .iter()
         .fold(Some(&-1), |acc, x| match acc {

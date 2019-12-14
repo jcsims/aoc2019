@@ -3,7 +3,7 @@ use crate::util;
 use itertools::Itertools;
 use log::trace;
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let program = Program::new(util::comma_separated_to_vec("data/d7.txt"));
 
     (0..5)
@@ -13,7 +13,7 @@ pub fn part1() -> i32 {
         .unwrap()
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let program = Program::new(util::comma_separated_to_vec("data/d7.txt"));
 
     (5..10)
@@ -23,7 +23,7 @@ pub fn part2() -> i32 {
         .unwrap()
 }
 
-fn run_phase_sequence(program: &Program, sequence: Vec<i32>, input: i32) -> (Program, i32) {
+fn run_phase_sequence(program: &Program, sequence: Vec<i64>, input: i64) -> (Program, i64) {
     let mut amp_a = program.clone();
     let mut amp_b = program.clone();
     let mut amp_c = program.clone();

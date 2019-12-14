@@ -1,7 +1,7 @@
 use crate::util;
 use log::trace;
 
-pub fn part1() -> i32 {
+pub fn part1() -> i64 {
     let input = util::file_as_string("data/d8.txt");
 
     let layers = build_layers(&input, 25, 6);
@@ -22,10 +22,10 @@ pub fn part1() -> i32 {
         .filter(|x| **x == Pixel::Transparent)
         .count();
 
-    (layer_ones * layer_twos) as i32
+    (layer_ones * layer_twos) as i64
 }
 
-pub fn part2() -> i32 {
+pub fn part2() -> i64 {
     let input = util::file_as_string("data/d8.txt");
 
     let width = 25;
