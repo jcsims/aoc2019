@@ -153,32 +153,36 @@ pub fn run_program(program: &mut Program) -> &mut Program {
         return program;
     }
 
-    match parse_opcode(get_state(
-        program,
-        program.pointer,
-        ParameterMode::Immediate,
-    )) {
-        OpCode::Stop => {
-            program.halt_status = Some(HaltStatus::Terminated);
-            program
-        }
-        OpCode::Add(x, y, z) => run_add_instruction(program, x, y, z),
-        OpCode::Multiply(x, y, z) => run_mult_instruction(program, x, y, z),
-        OpCode::Input(x) => {
-            if has_input(&program) {
-                run_input(program, x)
-            } else {
-                program.halt_status = Some(HaltStatus::WaitingInput);
-                program
+    loop {
+        match parse_opcode(get_state(
+            program,
+            program.pointer,
+            ParameterMode::Immediate,
+        )) {
+            OpCode::Stop => {
+                program.halt_status = Some(HaltStatus::Terminated);
+                break;
             }
+            OpCode::Add(x, y, z) => run_add_instruction(program, x, y, z),
+            OpCode::Multiply(x, y, z) => run_mult_instruction(program, x, y, z),
+            OpCode::Input(x) => {
+                if has_input(&program) {
+                    run_input(program, x);
+                } else {
+                    program.halt_status = Some(HaltStatus::WaitingInput);
+                    break;
+                }
+            }
+            OpCode::Output(x) => run_output(program, x),
+            OpCode::JumpIfTrue(x, y) => run_jump(program, true, x, y),
+            OpCode::JumpIfFalse(x, y) => run_jump(program, false, x, y),
+            OpCode::LessThan(x, y, z) => run_less_than(program, x, y, z),
+            OpCode::Equals(x, y, z) => run_equals(program, x, y, z),
+            OpCode::AdjustRelBase(x) => run_adjust_relative_base(program, x),
         }
-        OpCode::Output(x) => run_output(program, x),
-        OpCode::JumpIfTrue(x, y) => run_jump(program, true, x, y),
-        OpCode::JumpIfFalse(x, y) => run_jump(program, false, x, y),
-        OpCode::LessThan(x, y, z) => run_less_than(program, x, y, z),
-        OpCode::Equals(x, y, z) => run_equals(program, x, y, z),
-        OpCode::AdjustRelBase(x) => run_adjust_relative_base(program, x),
     }
+
+    program
 }
 
 fn run_add_instruction(
@@ -186,7 +190,7 @@ fn run_add_instruction(
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
-) -> &mut Program {
+) {
     if op3_mode == ParameterMode::Immediate {
         panic!("Tried to get a write destination using immediate mode!")
     }
@@ -205,8 +209,6 @@ fn run_add_instruction(
     program.state.insert(destination, operand_1 + operand_2);
 
     program.pointer += 4;
-
-    run_program(program)
 }
 
 fn run_mult_instruction(
@@ -214,7 +216,7 @@ fn run_mult_instruction(
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
-) -> &mut Program {
+) {
     let operand_1 = get_state(program, program.pointer + 1, op1_mode);
     let operand_2 = get_state(program, program.pointer + 2, op2_mode);
     let destination = get_destination(program, program.pointer + 3, op3_mode);
@@ -228,11 +230,9 @@ fn run_mult_instruction(
 
     program.state.insert(destination, operand_1 * operand_2);
     program.pointer += 4;
-
-    run_program(program)
 }
 
-fn run_input(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
+fn run_input(program: &mut Program, op_mode: ParameterMode) {
     let destination = get_destination(program, program.pointer + 1, op_mode);
 
     let input = get_next_input(program).unwrap();
@@ -246,11 +246,9 @@ fn run_input(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
     program.state.insert(destination, input);
 
     program.pointer += 2;
-
-    run_program(program)
 }
 
-fn run_output(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
+fn run_output(program: &mut Program, op_mode: ParameterMode) {
     let output = get_state(program, program.pointer + 1, op_mode);
 
     trace!("Pushing output: {}", output);
@@ -258,8 +256,6 @@ fn run_output(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
     push_output(program, output);
 
     program.pointer += 2;
-
-    run_program(program)
 }
 
 fn run_jump(
@@ -267,7 +263,7 @@ fn run_jump(
     jump_if: bool,
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
-) -> &mut Program {
+) {
     let operand_1 = get_state(program, program.pointer + 1, op1_mode);
     let operand_2 = get_state(program, program.pointer + 2, op2_mode);
 
@@ -276,8 +272,6 @@ fn run_jump(
         x if jump_if && x != 0 => program.pointer = operand_2,
         _ => program.pointer += 3,
     }
-
-    run_program(program)
 }
 
 fn run_less_than(
@@ -285,7 +279,7 @@ fn run_less_than(
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
-) -> &mut Program {
+) {
     let operand_1 = get_state(program, program.pointer + 1, op1_mode);
     let operand_2 = get_state(program, program.pointer + 2, op2_mode);
     let destination = get_destination(program, program.pointer + 3, op3_mode);
@@ -297,15 +291,14 @@ fn run_less_than(
     }
 
     program.pointer += 4;
-
-    run_program(program)
 }
+
 fn run_equals(
     program: &mut Program,
     op1_mode: ParameterMode,
     op2_mode: ParameterMode,
     op3_mode: ParameterMode,
-) -> &mut Program {
+) {
     let operand_1 = get_state(program, program.pointer + 1, op1_mode);
     let operand_2 = get_state(program, program.pointer + 2, op2_mode);
     let destination = get_destination(program, program.pointer + 3, op3_mode);
@@ -317,11 +310,9 @@ fn run_equals(
     }
 
     program.pointer += 4;
-
-    run_program(program)
 }
 
-fn run_adjust_relative_base(program: &mut Program, op_mode: ParameterMode) -> &mut Program {
+fn run_adjust_relative_base(program: &mut Program, op_mode: ParameterMode) {
     let operand = get_state(program, program.pointer + 1, op_mode);
 
     program.relative_base += operand;
@@ -333,8 +324,6 @@ fn run_adjust_relative_base(program: &mut Program, op_mode: ParameterMode) -> &m
     );
 
     program.pointer += 2;
-
-    run_program(program)
 }
 
 ////////////////////////////////////////////////////////////////
