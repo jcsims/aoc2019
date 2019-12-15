@@ -1,7 +1,6 @@
 use crate::intcode;
 use crate::intcode::Program;
 use crate::util;
-use log::trace;
 
 pub fn part1() -> i64 {
     let mut program = Program::new(util::comma_separated_to_vec("data/d9.txt"));
@@ -29,11 +28,4 @@ pub fn part2() -> i64 {
     assert!(intcode::get_next_output(&mut program).is_none());
 
     final_output
-}
-
-#[test]
-fn foo() {
-    let _ = env_logger::builder().is_test(true).try_init();
-
-    assert_eq!(2, 2);
 }
