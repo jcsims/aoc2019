@@ -68,6 +68,7 @@ fn run_all() {
     assert_eq!(42, day8::part2(), "day8::part2 failed!");
     assert_eq!(2752191671, day9::part1(), "day9::part1 failed!");
     assert_eq!(87571, day9::part2(), "day9::part2 failed!");
+    assert_eq!(260, day10::part1(), "day10::part1 failed!");
 
     println!("Elapsed time: {:?}", Instant::elapsed(&now));
 }
