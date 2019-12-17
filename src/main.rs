@@ -48,29 +48,136 @@ fn main() {
 }
 
 fn run_all() {
-    let now = Instant::now();
+    let start = Instant::now();
+    let mut ex_start;
 
     assert_eq!(3442987, day1::part1(), "day1::part1 failed!");
-    assert_eq!(5161601, day1::part2(), "day1::part2 failed!");
-    assert_eq!(3306701, day2::part1(), "day2::part1 failed!");
-    assert_eq!(7621, day2::part2(), "day2::part2 failed!");
-    assert_eq!(651, day3::part1(), "day3::part1 failed!");
-    assert_eq!(7534, day3::part2(), "day3::part2 failed!");
-    assert_eq!(2150, day4::part1(), "day4::part1 failed!");
-    assert_eq!(1462, day4::part2(), "day4::part2 failed!");
-    assert_eq!(9938601, day5::part1(), "day5::part1 failed!");
-    assert_eq!(4283952, day5::part2(), "day5::part2 failed!");
-    assert_eq!(621125, day6::part1(), "day6::part1 failed!");
-    assert_eq!(550, day6::part2(), "day6::part2 failed!");
-    assert_eq!(21000, day7::part1(), "day7::part1 failed!");
-    assert_eq!(61379886, day7::part2(), "day7::part2 failed!");
-    assert_eq!(1792, day8::part1(), "day8::part1 failed!");
-    assert_eq!(42, day8::part2(), "day8::part2 failed!");
-    assert_eq!(2752191671, day9::part1(), "day9::part1 failed!");
-    assert_eq!(87571, day9::part2(), "day9::part2 failed!");
-    assert_eq!(260, day10::part1(), "day10::part1 failed!");
+    println!("day::part1 elapsed time: {:?}", Instant::elapsed(&start));
 
-    println!("Elapsed time: {:?}", Instant::elapsed(&now));
+    ex_start = Instant::now();
+    assert_eq!(5161601, day1::part2(), "day1::part2 failed!");
+    println!("day::part2 elapsed time: {:?}", Instant::elapsed(&ex_start));
+
+    ex_start = Instant::now();
+    assert_eq!(3306701, day2::part1(), "day2::part1 failed!");
+    println!(
+        "day2::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(7621, day2::part2(), "day2::part2 failed!");
+    println!(
+        "day2::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(651, day3::part1(), "day3::part1 failed!");
+    println!(
+        "day3::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(7534, day3::part2(), "day3::part2 failed!");
+    println!(
+        "day3::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(2150, day4::part1(), "day4::part1 failed!");
+    println!(
+        "day4::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(1462, day4::part2(), "day4::part2 failed!");
+    println!(
+        "day4::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(9938601, day5::part1(), "day5::part1 failed!");
+    println!(
+        "day5::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(4283952, day5::part2(), "day5::part2 failed!");
+    println!(
+        "day5::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(621125, day6::part1(), "day6::part1 failed!");
+    println!(
+        "day6::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(550, day6::part2(), "day6::part2 failed!");
+    println!(
+        "day6::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(21000, day7::part1(), "day7::part1 failed!");
+    println!(
+        "day7::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(61379886, day7::part2(), "day7::part2 failed!");
+    println!(
+        "day7::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(1792, day8::part1(), "day8::part1 failed!");
+    println!(
+        "day8::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(42, day8::part2(), "day8::part2 failed!");
+    println!(
+        "day8::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(2752191671, day9::part1(), "day9::part1 failed!");
+    println!(
+        "day9::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(87571, day9::part2(), "day9::part2 failed!");
+    println!(
+        "day9::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(260, day10::part1(), "day10::part1 failed!");
+    println!(
+        "day10::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    println!("Total elapsed time: {:?}", Instant::elapsed(&start));
 }
 
 fn run_one(exercise: fn() -> i64) {
