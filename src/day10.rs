@@ -1,5 +1,6 @@
 use crate::util;
 use log::trace;
+use std::f32::{self, consts};
 
 pub fn part1() -> i64 {
     let input = parse(&util::file_as_string("data/d10.txt"));
@@ -7,18 +8,38 @@ pub fn part1() -> i64 {
     // Iterate over each point, and see how many other points are
     // visible to it. Don't count the node itself.
 
-    let foo = input
+    let target = input
         .iter()
-        .map(|x| (points_visible_to_asteroid(x, &input), x))
+        .map(|x| (num_points_visible_to_asteroid(x, &input), x))
         .max_by(|x, y| x.0.cmp(&y.0))
         .unwrap()
         .clone();
 
-    foo.0 as i64
+    //println!("station location: {:?}", target);
+
+    target.0 as i64
 }
 
 pub fn part2() -> i64 {
-    42
+    let input = parse(&util::file_as_string("data/d10.txt"));
+
+    // Get this from part 1
+    let station = Point { x: 14, y: 17 };
+
+    let mut others = points_visible_to_asteroid(&station, &input);
+
+    // Will find it on the first pass!
+    assert!(others.len() > 200);
+
+    others.sort_by(|a, b| {
+        (circular_distance_from_y_axis(&station, &a)
+            .partial_cmp(&circular_distance_from_y_axis(&station, &b))
+            .unwrap())
+    });
+
+    let target = others[199];
+
+    (target.x * 100 + target.y) as i64
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -42,6 +63,25 @@ fn parse(space: &str) -> Vec<Point> {
         }
     }
     parsed
+}
+
+fn circular_distance_from_y_axis(origin: &Point, dest: &Point) -> f32 {
+    let delta_x = (dest.x - origin.x) as f32;
+    let delta_y = -1f32 * ((dest.y - origin.y) as f32);
+
+    // atan2 is a fun function:
+    //    pi/2 - pi | 0 - pi/2
+    //              |
+    // pi ---> ----------- <--- 0
+    // [-pi/2 - pi) | 0 - -pi/2
+    //              |
+
+    match delta_y.atan2(delta_x) {
+        x if x < 0f32 => (x - consts::FRAC_PI_2).abs(),
+        x if x >= 0f32 && x <= consts::FRAC_PI_2 => consts::FRAC_PI_2 - x,
+        x if x > consts::FRAC_PI_2 => (2f32 * consts::PI) - (x - consts::FRAC_PI_2),
+        _ => panic!("atan2 returned a value I wasn't expecting...."),
+    }
 }
 
 fn distance(a: &Point, b: &Point) -> f32 {
@@ -69,8 +109,14 @@ fn occluding(origin: &Point, p: &Point, destination: &Point) -> bool {
     diff < 0.00001
 }
 
-fn points_visible_to_asteroid(asteroid: &Point, others: &Vec<Point>) -> i32 {
-    let mut num_seen = 0;
+fn num_points_visible_to_asteroid(asteroid: &Point, others: &Vec<Point>) -> i32 {
+    let visible = points_visible_to_asteroid(asteroid, others);
+
+    visible.len() as i32
+}
+
+fn points_visible_to_asteroid(asteroid: &Point, others: &Vec<Point>) -> Vec<Point> {
+    let mut seen = Vec::new();
     for destination in others.iter() {
         if asteroid == destination {
             continue;
@@ -92,12 +138,12 @@ fn points_visible_to_asteroid(asteroid: &Point, others: &Vec<Point>) -> i32 {
                 }
             }
             if can_see {
-                num_seen += 1;
+                seen.push(destination.clone());
             }
         }
     }
 
-    num_seen
+    seen
 }
 
 #[test]
@@ -143,7 +189,7 @@ fn can_see_test() {
 
     let can_see = input
         .iter()
-        .map(|x| (points_visible_to_asteroid(x, &input), x))
+        .map(|x| (num_points_visible_to_asteroid(x, &input), x))
         .collect::<Vec<(i32, &Point)>>();
 
     assert_eq!(
@@ -165,5 +211,41 @@ fn can_see_test() {
     assert_eq!(
         (8, &Point { x: 3, y: 4 }),
         can_see.iter().max_by(|x, y| x.0.cmp(&y.0)).unwrap().clone()
+    );
+}
+
+#[test]
+fn test_circular_distance() {
+    let origin = Point { x: 0, y: 0 };
+
+    assert_eq!(0f32, 0f32.atan2(1f32));
+
+    assert_eq!(consts::FRAC_PI_2, 1f32.atan2(0f32));
+
+    assert_eq!(-consts::FRAC_PI_2, -1f32.atan2(0f32));
+
+    assert_eq!(-consts::PI + consts::FRAC_PI_4, -1f32.atan2(-1f32));
+
+    assert_eq!(consts::PI, 0f32.atan2(-1f32));
+
+    // Note that in our system,y increases as you go "down" in a grid.
+    assert_eq!(
+        0f32,
+        circular_distance_from_y_axis(&origin, &Point { x: 0, y: -1 })
+    );
+
+    assert_eq!(
+        consts::FRAC_PI_2,
+        circular_distance_from_y_axis(&origin, &Point { x: 1, y: 0 })
+    );
+
+    assert_eq!(
+        consts::PI,
+        circular_distance_from_y_axis(&origin, &Point { x: 0, y: 1 })
+    );
+
+    assert_eq!(
+        consts::PI + consts::FRAC_PI_2,
+        circular_distance_from_y_axis(&origin, &Point { x: -1, y: 0 })
     );
 }
