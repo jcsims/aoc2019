@@ -50,3 +50,35 @@ pub fn digits(input: i64) -> Vec<i64> {
 
     digits
 }
+
+// Modified from https://stackoverflow.com/a/40168843
+pub struct DecreasingRange {
+    pub start: i32,
+    pub end: i32,
+    pub step: i32,
+}
+
+impl DecreasingRange {
+    pub fn new(start: i32, end: i32, step: i32) -> DecreasingRange {
+        DecreasingRange {
+            start: start,
+            end: end,
+            step: step,
+        }
+    }
+}
+
+impl Iterator for DecreasingRange {
+    type Item = i32;
+
+    #[inline]
+    fn next(&mut self) -> Option<i32> {
+        if self.start > self.end {
+            let v = self.start;
+            self.start = v + self.step;
+            Some(v)
+        } else {
+            None
+        }
+    }
+}

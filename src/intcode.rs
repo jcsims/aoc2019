@@ -23,7 +23,7 @@ pub enum ParameterMode {
     Relative,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum HaltStatus {
     Terminated, // Got an opcode 99, all done
     WaitingInput,
@@ -664,4 +664,21 @@ fn large_numbers_test() {
     run_program(&mut program);
 
     assert_eq!(1125899906842624, get_next_output(&mut program).unwrap());
+}
+
+#[test]
+fn output_queue_test() {
+    let mut program = Program::new(vec![]);
+
+    push_output(&mut program, 42);
+
+    assert_eq!(42, get_next_output(&mut program).unwrap());
+
+    push_output(&mut program, 42);
+    push_output(&mut program, 105);
+
+    assert_eq!(42, get_next_output(&mut program).unwrap());
+    assert_eq!(105, get_next_output(&mut program).unwrap());
+
+    assert!(get_next_output(&mut program).is_none());
 }
