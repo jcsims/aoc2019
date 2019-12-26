@@ -226,7 +226,7 @@ fn test_circular_distance() {
 
     assert_eq!(-consts::PI + consts::FRAC_PI_4, -1f32.atan2(-1f32));
 
-    assert_eq!(consts::PI, 0f32.atan2(-1f32));
+    assert!((consts::PI - 0f32.atan2(-1f32)).abs() < 0.000001);
 
     // Note that in our system,y increases as you go "down" in a grid.
     assert_eq!(
