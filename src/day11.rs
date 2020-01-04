@@ -87,8 +87,6 @@ pub fn part2() -> i64 {
     let mut output = String::new();
 
     // We're printing from top to bottom, so start with the max y
-    // Doesn't quite work yet.. need to step over this range with a
-    // negative increment
     for y in DecreasingRange::new(max_y, min_y - 1, -1) {
         for x in min_x..=max_x {
             match hull.get(&Point { x: x, y: y }) {
@@ -128,8 +126,8 @@ enum Color {
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 struct Point {
-    x: i32,
-    y: i32,
+    x: i64,
+    y: i64,
 }
 
 fn parse_color(color: i64) -> Color {
