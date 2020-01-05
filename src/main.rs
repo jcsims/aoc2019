@@ -218,6 +218,20 @@ fn run_all() {
         Instant::elapsed(&ex_start)
     );
 
+    ex_start = Instant::now();
+    assert_eq!(200, day13::part1(), "day13::part1 failed!");
+    println!(
+        "day13::part1 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
+    ex_start = Instant::now();
+    assert_eq!(9803, day13::part2(), "day13::part2 failed!");
+    println!(
+        "day13::part2 elapsed time: {:?}",
+        Instant::elapsed(&ex_start)
+    );
+
     println!("Total elapsed time: {:?}", Instant::elapsed(&start));
 }
 
