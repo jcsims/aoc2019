@@ -155,7 +155,7 @@ fn orbital_transfers(orbits: HashSet<Orbit>) -> i64 {
 }
 
 fn parse_orbit(input: &str) -> OrbitRelationship {
-    let mut splits = input.split(")");
+    let mut splits = input.split(')');
 
     OrbitRelationship {
         orbited: splits.next().unwrap().to_owned(),

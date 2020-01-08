@@ -10,10 +10,9 @@ pub fn part1() -> i64 {
 
     let target = input
         .iter()
-        .map(|x| (num_points_visible_to_asteroid(x, &input), x))
+        .map(|x| (num_points_visible_to_asteroid(*x, &input), x))
         .max_by(|x, y| x.0.cmp(&y.0))
-        .unwrap()
-        .clone();
+        .unwrap();
 
     //println!("station location: {:?}", target);
 
@@ -26,14 +25,14 @@ pub fn part2() -> i64 {
     // Get this from part 1
     let station = Point { x: 14, y: 17 };
 
-    let mut others = points_visible_to_asteroid(&station, &input);
+    let mut others = points_visible_to_asteroid(station, &input);
 
     // Will find it on the first pass!
     assert!(others.len() > 200);
 
     others.sort_by(|a, b| {
-        (circular_distance_from_y_axis(&station, &a)
-            .partial_cmp(&circular_distance_from_y_axis(&station, &b))
+        (circular_distance_from_y_axis(station, *a)
+            .partial_cmp(&circular_distance_from_y_axis(station, *b))
             .unwrap())
     });
 
@@ -65,7 +64,7 @@ fn parse(space: &str) -> Vec<Point> {
     parsed
 }
 
-fn circular_distance_from_y_axis(origin: &Point, dest: &Point) -> f32 {
+fn circular_distance_from_y_axis(origin: Point, dest: Point) -> f32 {
     let delta_x = (dest.x - origin.x) as f32;
     let delta_y = -1f32 * ((dest.y - origin.y) as f32);
 
@@ -84,7 +83,7 @@ fn circular_distance_from_y_axis(origin: &Point, dest: &Point) -> f32 {
     }
 }
 
-fn distance(a: &Point, b: &Point) -> f32 {
+fn distance(a: Point, b: Point) -> f32 {
     let delta_x = a.x - b.x;
     let delta_y = a.y - b.y;
 
@@ -92,9 +91,9 @@ fn distance(a: &Point, b: &Point) -> f32 {
 }
 
 /// From `origin`, is `p` occluding `destination`?
-fn occluding(origin: &Point, p: &Point, destination: &Point) -> bool {
-    let point_dist = distance(&origin, &p) + distance(&p, &destination);
-    let dest_dist = distance(&origin, &destination);
+fn occluding(origin: Point, p: Point, destination: Point) -> bool {
+    let point_dist = distance(origin, p) + distance(p, destination);
+    let dest_dist = distance(origin, destination);
 
     let diff = (point_dist - dest_dist).abs();
 
@@ -109,32 +108,30 @@ fn occluding(origin: &Point, p: &Point, destination: &Point) -> bool {
     diff < 0.00001
 }
 
-fn num_points_visible_to_asteroid(asteroid: &Point, others: &Vec<Point>) -> i32 {
+fn num_points_visible_to_asteroid(asteroid: Point, others: &[Point]) -> i32 {
     let visible = points_visible_to_asteroid(asteroid, others);
 
     visible.len() as i32
 }
 
-fn points_visible_to_asteroid(asteroid: &Point, others: &Vec<Point>) -> Vec<Point> {
+fn points_visible_to_asteroid(asteroid: Point, others: &[Point]) -> Vec<Point> {
     let mut seen = Vec::new();
     for destination in others.iter() {
-        if asteroid == destination {
+        if &asteroid == destination {
             continue;
         } else {
             let mut can_see = true;
             for other_point in others.iter() {
-                if destination == other_point || other_point == asteroid {
+                if destination == other_point || other_point == &asteroid {
                     continue;
-                } else {
-                    if occluding(asteroid, other_point, &destination) {
-                        trace!(
-                            "origin: {:?}. {:?} is occluding {:?}",
-                            asteroid,
-                            other_point,
-                            destination
-                        );
-                        can_see = false;
-                    }
+                } else if occluding(asteroid, *other_point, *destination) {
+                    trace!(
+                        "origin: {:?}. {:?} is occluding {:?}",
+                        asteroid,
+                        other_point,
+                        destination
+                    );
+                    can_see = false;
                 }
             }
             if can_see {
@@ -189,7 +186,7 @@ fn can_see_test() {
 
     let can_see = input
         .iter()
-        .map(|x| (num_points_visible_to_asteroid(x, &input), x))
+        .map(|x| (num_points_visible_to_asteroid(x.clone(), &input), x))
         .collect::<Vec<(i32, &Point)>>();
 
     assert_eq!(
@@ -231,21 +228,21 @@ fn test_circular_distance() {
     // Note that in our system,y increases as you go "down" in a grid.
     assert_eq!(
         0f32,
-        circular_distance_from_y_axis(&origin, &Point { x: 0, y: -1 })
+        circular_distance_from_y_axis(origin, Point { x: 0, y: -1 })
     );
 
     assert_eq!(
         consts::FRAC_PI_2,
-        circular_distance_from_y_axis(&origin, &Point { x: 1, y: 0 })
+        circular_distance_from_y_axis(origin, Point { x: 1, y: 0 })
     );
 
     assert_eq!(
         consts::PI,
-        circular_distance_from_y_axis(&origin, &Point { x: 0, y: 1 })
+        circular_distance_from_y_axis(origin, Point { x: 0, y: 1 })
     );
 
     assert_eq!(
         consts::PI + consts::FRAC_PI_2,
-        circular_distance_from_y_axis(&origin, &Point { x: -1, y: 0 })
+        circular_distance_from_y_axis(origin, Point { x: -1, y: 0 })
     );
 }

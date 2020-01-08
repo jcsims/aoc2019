@@ -33,7 +33,7 @@ pub fn part2() -> i64 {
                 intcode::run_program(&mut program),
                 0,
                 ParameterMode::Immediate,
-            ) == 19690720
+            ) == 19_690_720
             {
                 correct_noun = noun;
                 correct_verb = verb;

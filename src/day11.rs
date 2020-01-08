@@ -89,7 +89,7 @@ pub fn part2() -> i64 {
     // We're printing from top to bottom, so start with the max y
     for y in DecreasingRange::new(max_y, min_y - 1, -1) {
         for x in min_x..=max_x {
-            match hull.get(&Point { x: x, y: y }) {
+            match hull.get(&Point { x, y }) {
                 None => output.push(' '),
                 Some(color) => match color {
                     Color::Black => output.push(' '),

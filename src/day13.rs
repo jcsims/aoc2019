@@ -1,6 +1,7 @@
 use crate::intcode::{self, Program};
 use crate::util;
 //use log::trace;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 //use std::io::{self, Write};
@@ -176,7 +177,6 @@ fn parse_draw_instructions(
                             *paddle_x = x_position;
                         }
                         screen.insert((x_position, y_position), parse_tile(tile_id));
-                        ()
                     }
                     None => panic!("Missing tile id for x- and y-coordinate pair"),
                 },
@@ -221,40 +221,32 @@ fn paddle_direction(last_x: i64, ball_x: i64, paddle_x: i64) -> i64 {
         1
     } else {
         // we're close - which direction do we move?
-        if last_x < ball_x {
+        match last_x.cmp(&ball_x) {
             // moving to the right
-            if ball_x > paddle_x {
+            Ordering::Less => match ball_x.cmp(&paddle_x) {
                 // keep moving the paddle to the right....
-                1
-            } else if ball_x == paddle_x {
-                // stay here
-                0
-            } else {
+                Ordering::Greater => 1,
+                //stay here
+                Ordering::Equal => 0,
                 // move closer to it
-                -1
-            }
-        } else if last_x > ball_x {
+                Ordering::Less => -1,
+            },
             // moving to the left
-            if ball_x < paddle_x {
+            Ordering::Greater => match ball_x.cmp(&paddle_x) {
                 // keep moving the paddle to the left....
-                -1
-            } else if ball_x == paddle_x {
+                Ordering::Less => -1,
                 // stay here
-                0
-            } else {
+                Ordering::Equal => 0,
                 // move closer to it
-                1
-            }
-        } else {
+                Ordering::Greater => 1,
+            },
             // it's moving straight up...
-            if ball_x < paddle_x {
-                -1
-            } else if ball_x > paddle_x {
-                1
-            } else {
+            Ordering::Equal => match ball_x.cmp(&paddle_x) {
+                Ordering::Less => -1,
+                Ordering::Greater => 1,
                 // stay right here....
-                0
-            }
+                Ordering::Equal => 0,
+            },
         }
     }
 }

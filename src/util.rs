@@ -60,11 +60,7 @@ pub struct DecreasingRange {
 
 impl DecreasingRange {
     pub fn new(start: i64, end: i64, step: i64) -> DecreasingRange {
-        DecreasingRange {
-            start: start,
-            end: end,
-            step: step,
-        }
+        DecreasingRange { start, end, step }
     }
 }
 

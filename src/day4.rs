@@ -1,19 +1,21 @@
 use crate::util;
 
 pub fn part1() -> i64 {
-    let lower = 124075;
-    let upper = 580769;
+    let lower = 124_075;
+    let upper = 580_769;
 
     let mut passwords = 0;
 
     for i in lower..=upper {
         let input = util::digits(i);
-        match doubled_digits(&input) {
-            false => continue,
-            true => match digits_in_order(&input) {
-                false => continue,
-                true => passwords += 1,
-            },
+        if doubled_digits(&input) {
+            if digits_in_order(&input) {
+                passwords += 1;
+            } else {
+                continue;
+            }
+        } else {
+            continue;
         }
     }
 
@@ -21,36 +23,38 @@ pub fn part1() -> i64 {
 }
 
 pub fn part2() -> i64 {
-    let lower = 124075;
-    let upper = 580769;
+    let lower = 124_075;
+    let upper = 580_769;
 
     let mut passwords = 0;
 
     for i in lower..=upper {
         let input = util::digits(i);
-        match strictly_doubled_digits(&input) {
-            false => continue,
-            true => match digits_in_order(&input) {
-                false => continue,
-                true => passwords += 1,
-            },
+        if strictly_doubled_digits(&input) {
+            if digits_in_order(&input) {
+                passwords += 1;
+            } else {
+                continue;
+            }
+        } else {
+            continue;
         }
     }
 
     passwords
 }
 
-fn doubled_digits(input: &Vec<i64>) -> bool {
+fn doubled_digits(input: &[i64]) -> bool {
     let length = input.len();
 
-    let mut deduped = input.clone();
+    let mut deduped = input.to_owned();
 
     deduped.dedup();
 
     length != deduped.len()
 }
 
-fn strictly_doubled_digits(input: &Vec<i64>) -> bool {
+fn strictly_doubled_digits(input: &[i64]) -> bool {
     let mut input_iter = input.iter();
 
     let mut first = input_iter.next().unwrap();
@@ -88,7 +92,7 @@ fn strictly_doubled_digits(input: &Vec<i64>) -> bool {
     false
 }
 
-fn digits_in_order(input: &Vec<i64>) -> bool {
+fn digits_in_order(input: &[i64]) -> bool {
     input
         .iter()
         .fold(Some(&-1), |acc, x| match acc {

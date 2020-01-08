@@ -39,7 +39,7 @@ pub fn part2() -> i64 {
         let pixel = match layers
             .iter()
             .map(|x| x[i])
-            .try_fold(Pixel::Transparent, |x, y| compare_layers(x, y))
+            .try_fold(Pixel::Transparent, compare_layers)
         {
             // This is gross
             Ok(x) => x,
@@ -86,7 +86,7 @@ fn compare_layers(x: Pixel, y: Pixel) -> Result<Pixel, Pixel> {
 
 fn build_layers(input: &str, width: usize, height: usize) -> Vec<Vec<Pixel>> {
     let mut output = Vec::new();
-    let mut iterator = input.chars().filter_map(|x| parse_pixel(x)).peekable();
+    let mut iterator = input.chars().filter_map(parse_pixel).peekable();
 
     let layer_size = width * height;
 

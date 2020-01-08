@@ -13,10 +13,8 @@ pub fn part1() -> i64 {
     let first_points = points_from_path(ORIGIN, paths[0].to_owned());
     let second_points = points_from_path(ORIGIN, paths[1].to_owned());
 
-    let closest = closest_intersection(ORIGIN, first_points.clone(), second_points.clone());
-    let distance = distance_between(&ORIGIN, &closest);
-
-    distance
+    let closest = closest_intersection(ORIGIN, first_points, second_points);
+    distance_between(&ORIGIN, &closest)
 }
 
 pub fn part2() -> i64 {
@@ -27,7 +25,7 @@ pub fn part2() -> i64 {
     let first_points = points_from_path(ORIGIN, paths[0].to_owned());
     let second_points = points_from_path(ORIGIN, paths[1].to_owned());
 
-    shortest_taxi_cab_path_to_intersection(first_points.clone(), second_points.clone())
+    shortest_taxi_cab_path_to_intersection(first_points, second_points)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -121,7 +119,7 @@ fn points_from_path(start: Point, path: Vec<Vector>) -> HashSet<Point> {
                     points.insert(Point {
                         x: current_x,
                         y: current_y + i,
-                        traveled: traveled,
+                        traveled,
                     });
                     traveled += 1;
                 }
@@ -132,7 +130,7 @@ fn points_from_path(start: Point, path: Vec<Vector>) -> HashSet<Point> {
                     points.insert(Point {
                         x: current_x,
                         y: current_y - i,
-                        traveled: traveled,
+                        traveled,
                     });
                     traveled += 1;
                 }
@@ -143,7 +141,7 @@ fn points_from_path(start: Point, path: Vec<Vector>) -> HashSet<Point> {
                     points.insert(Point {
                         x: current_x + i,
                         y: current_y,
-                        traveled: traveled,
+                        traveled,
                     });
                     traveled += 1;
                 }
@@ -154,7 +152,7 @@ fn points_from_path(start: Point, path: Vec<Vector>) -> HashSet<Point> {
                     points.insert(Point {
                         x: current_x - i,
                         y: current_y,
-                        traveled: traveled,
+                        traveled,
                     });
                     traveled += 1;
                 }
@@ -180,15 +178,15 @@ fn parse_path(path: &str) -> Vector {
     let distance = chars.collect::<String>().parse::<i64>().unwrap();
 
     Vector {
-        direction: direction,
-        distance: distance,
+        direction,
+        distance,
     }
 }
 
 fn load_paths(filepath: &str) -> Vec<Vec<Vector>> {
     super::util::lines_from_path(filepath)
         .filter_map(|x| match x {
-            Ok(line) => Some(line.split(",").map(|x| parse_path(x)).collect()),
+            Ok(line) => Some(line.split(',').map(|x| parse_path(x)).collect()),
             _ => None,
         })
         .collect()

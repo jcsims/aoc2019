@@ -2,7 +2,7 @@ use crate::util;
 //use log::trace;
 use primes;
 use regex::Regex;
-use std::cmp;
+use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 
 pub fn part1() -> i64 {
@@ -65,7 +65,7 @@ pub fn part2() -> i64 {
 
     // get the z period
     let mut z_period = 0;
-    mut_moons = moons.clone();
+    mut_moons = moons;
 
     loop {
         update_velocities(&mut mut_moons);
@@ -134,9 +134,9 @@ struct Moon {
 impl Moon {
     fn new(x: i32, y: i32, z: i32) -> Moon {
         Moon {
-            x: x,
-            y: y,
-            z: z,
+            x,
+            y,
+            z,
             x_vel: 0,
             y_vel: 0,
             z_vel: 0,
@@ -160,23 +160,22 @@ fn update_velocities(moons: &mut Vec<Moon>) {
 
     for moon in moons {
         for other_moon in &da_moons {
-            if same_position(&moon, &other_moon) {
-                continue;
+            match other_moon.x.cmp(&moon.x) {
+                Ordering::Equal => (),
+                Ordering::Less => delta_vx -= 1,
+                Ordering::Greater => delta_vx += 1,
             }
-            if other_moon.x < moon.x {
-                delta_vx -= 1;
-            } else if other_moon.x > moon.x {
-                delta_vx += 1;
+
+            match other_moon.y.cmp(&moon.y) {
+                Ordering::Equal => (),
+                Ordering::Less => delta_vy -= 1,
+                Ordering::Greater => delta_vy += 1,
             }
-            if other_moon.y < moon.y {
-                delta_vy -= 1;
-            } else if other_moon.y > moon.y {
-                delta_vy += 1;
-            }
-            if other_moon.z < moon.z {
-                delta_vz -= 1;
-            } else if other_moon.z > moon.z {
-                delta_vz += 1;
+
+            match other_moon.z.cmp(&moon.z) {
+                Ordering::Equal => (),
+                Ordering::Less => delta_vz -= 1,
+                Ordering::Greater => delta_vz += 1,
             }
 
             moon.x_vel += delta_vx;
@@ -187,10 +186,6 @@ fn update_velocities(moons: &mut Vec<Moon>) {
             delta_vz = 0;
         }
     }
-}
-
-fn same_position(moon1: &Moon, moon2: &Moon) -> bool {
-    moon1.x == moon2.x && moon1.y == moon2.y && moon1.z == moon2.z
 }
 
 fn update_positions(moons: &mut Vec<Moon>) {

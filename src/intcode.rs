@@ -139,12 +139,12 @@ pub fn is_terminated(program: &Program) -> bool {
     }
 }
 
-pub fn is_waiting_input(program: &Program) -> bool {
-    match program.halt_status {
-        Some(HaltStatus::WaitingInput) => true,
-        _ => false,
-    }
-}
+// pub fn is_waiting_input(program: &Program) -> bool {
+//     match program.halt_status {
+//         Some(HaltStatus::WaitingInput) => true,
+//         _ => false,
+//     }
+// }
 
 pub fn get_destination(program: &Program, pointer: i64, pm: ParameterMode) -> i64 {
     match pm {

@@ -10,7 +10,7 @@ pub fn part1() -> i64 {
     let final_state = intcode::run_program(&mut program);
 
     match intcode::get_last_output(final_state) {
-        Some(x) => return x.clone(),
+        Some(x) => x,
         None => panic!("Bad output :("),
     }
 }
@@ -23,7 +23,7 @@ pub fn part2() -> i64 {
     let final_state = intcode::run_program(&mut program);
 
     match intcode::get_next_output(final_state) {
-        Some(x) => return x.clone(),
+        Some(x) => x,
         None => panic!("Bad output :("),
     }
 }
