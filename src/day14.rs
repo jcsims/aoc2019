@@ -21,11 +21,15 @@ pub fn part1() -> i64 {
         }
     }
 
+    ore_for_fuel(&reactions, 1)
+}
+
+fn ore_for_fuel(reactions: &HashMap<Ingredient, Vec<Ingredient>>, fuel_quantity: i64) -> i64 {
     let mut working_set = VecDeque::new();
     let mut stock_on_hand = HashMap::new();
     let mut required_ore = 0;
 
-    working_set.push_back(Ingredient::new(1, "FUEL".to_owned()));
+    working_set.push_back(Ingredient::new(fuel_quantity, "FUEL".to_owned()));
 
     while let Some(mut ingredient) = working_set.pop_front() {
         if let Some(on_hand) = stock_on_hand.remove(&ingredient.name) {
@@ -43,13 +47,10 @@ pub fn part1() -> i64 {
         match reactions.get_key_value(&ingredient) {
             None => panic!("Unable to find reaction for: {:?}", ingredient),
             Some((target, inputs)) => {
-                let mut multiple = 1;
-                loop {
-                    if target.quantity * multiple >= ingredient.quantity {
-                        break;
-                    } else {
-                        multiple += 1;
-                    }
+                let mut multiple = ingredient.quantity / target.quantity;
+
+                if ingredient.quantity % target.quantity != 0 {
+                    multiple += 1;
                 }
 
                 for input in inputs.clone().iter_mut() {
@@ -82,7 +83,40 @@ pub fn part1() -> i64 {
 pub fn part2() -> i64 {
     let available_ore: i64 = 1_000_000_000_000;
 
-    available_ore
+    let mut reactions = HashMap::new();
+
+    for line in util::lines_from_path("data/d14.txt") {
+        match line {
+            Ok(line) => {
+                let reaction = parse_reaction(&line);
+
+                reactions.insert(reaction.output, reaction.input);
+            }
+            Err(err) => {
+                println!("got an error parsing a line: {:?}", err);
+                continue;
+            }
+        }
+    }
+
+    let ore_per_fuel = ore_for_fuel(&reactions, 1);
+    let mut target_fuel = available_ore / ore_per_fuel;
+
+    loop {
+        let used_ore = ore_for_fuel(&reactions, target_fuel);
+
+        let diff = available_ore - used_ore;
+
+        if diff.abs() < ore_per_fuel {
+            break;
+        } else {
+            // total jank. There must be a better way. Also, I don't
+            // think this works if we overshoot....
+            target_fuel += (((available_ore - used_ore) / 2) / ore_per_fuel) + 1;
+        }
+    }
+
+    target_fuel
 }
 
 #[derive(Debug, Clone)]
