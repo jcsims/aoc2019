@@ -153,12 +153,6 @@ struct Reaction {
     output: Ingredient,
 }
 
-impl Reaction {
-    fn new(input: Vec<Ingredient>, output: Ingredient) -> Reaction {
-        Reaction { input, output }
-    }
-}
-
 fn parse_ingredient(raw: &str) -> Ingredient {
     let mut splits = raw.split(' ');
 
@@ -187,6 +181,12 @@ fn parse_reaction(reaction: &str) -> Reaction {
 
 #[test]
 fn parsing_test() {
+    impl Reaction {
+        fn new(input: Vec<Ingredient>, output: Ingredient) -> Reaction {
+            Reaction { input, output }
+        }
+    }
+
     assert_eq!(
         Reaction::new(
             vec![
