@@ -41,7 +41,7 @@ pub fn part1() -> i64 {
                 match parse_status(output) {
                     Status::Oxygen => {
                         layout.insert(current_position, Block::Empty(true));
-                        layout.insert(new_position, Block::Oxygen);
+                        layout.insert(new_position, Block::Oxygen(true));
                         break;
                     }
                     Status::Wall => {
@@ -78,7 +78,80 @@ pub fn part1() -> i64 {
 }
 
 pub fn part2() -> i64 {
-    42
+    let mut program = Program::new(util::comma_separated_to_vec("data/d15.txt"));
+
+    let mut layout = HashMap::new();
+    let mut current_position = (0, 0);
+
+    let mut branches_to_explore = Vec::new();
+    let mut directions = Vec::new();
+
+    let mut oxygen_location = (0, 0);
+
+    //let mut input = String::new();
+
+    directions.push(Direction::North);
+
+    loop {
+        let direction = match directions.pop() {
+            None => {
+                println!("Didn't have a direction to move in, so using a random one");
+                rand::random()
+            }
+            Some(direction) => direction,
+        };
+
+        intcode::push_input(&mut program, direction_to_input(direction));
+        intcode::run_program(&mut program);
+
+        match intcode::get_next_output(&mut program) {
+            None => panic!("Got no output from the program..."),
+            Some(output) => {
+                let new_position = move_in_direction(current_position, direction);
+
+                match parse_status(output) {
+                    Status::Oxygen => {
+                        layout.insert(current_position, Block::Empty(true));
+                        layout.insert(new_position, Block::Oxygen(true));
+                        oxygen_location = new_position;
+                        current_position = new_position;
+                    }
+                    Status::Wall => {
+                        if layout.get(&new_position) == Some(Block::Empty(true)).as_ref() {
+                            panic!("Overwrote an explored space with a wall!");
+                        }
+                        layout.insert(new_position, Block::Wall);
+                    }
+                    Status::Moved => {
+                        match layout.get(&current_position) {
+                            Some(Block::Oxygen(_)) => (), //leave it there
+                            _ => {
+                                layout.insert(current_position, Block::Empty(true));
+                            }
+                        };
+                        layout.insert(new_position, Block::Droid);
+                        current_position = new_position;
+                    }
+                };
+            }
+        }
+
+        look_around(
+            &mut program,
+            &mut layout,
+            &mut directions,
+            &mut branches_to_explore,
+            current_position,
+        );
+
+        if branches_to_explore.is_empty() && directions.is_empty() {
+            break;
+        }
+    }
+
+    //draw_space(&layout);
+
+    longest_path(&layout, oxygen_location)
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -119,19 +192,21 @@ fn opposite_direction(direction: Direction) -> Direction {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
 enum Status {
     Wall,
     Moved,
     Oxygen,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Block {
     Droid,
     Wall,
     // Have we explored this block yet?
     Empty(bool),
-    Oxygen,
+    // Have we explored this block yet?
+    Oxygen(bool),
 }
 
 fn parse_status(input: i64) -> Status {
@@ -163,7 +238,7 @@ fn parse_status(input: i64) -> Status {
 //                         Block::Droid => output.push('D'),
 //                         Block::Wall => output.push('#'),
 //                         Block::Empty(_) => output.push('.'),
-//                         Block::Oxygen => output.push('O'),
+//                         Block::Oxygen(_) => output.push('O'),
 //                     },
 //                 }
 //             }
@@ -188,7 +263,7 @@ fn look_around(
 
     match layout.get(&move_in_direction(current_position, Direction::North)) {
         // Nothing to see here, move along....
-        Some(Block::Wall) | Some(Block::Empty(true)) => (),
+        Some(Block::Wall) | Some(Block::Empty(true)) | Some(Block::Oxygen(true)) => (),
 
         _ => {
             branches_to_explore.push((current_position, Direction::North));
@@ -197,7 +272,7 @@ fn look_around(
 
     match layout.get(&move_in_direction(current_position, Direction::South)) {
         // Nothing to see here, move along....
-        Some(Block::Wall) | Some(Block::Empty(true)) => (),
+        Some(Block::Wall) | Some(Block::Empty(true)) | Some(Block::Oxygen(true)) => (),
         _ => {
             branches_to_explore.push((current_position, Direction::South));
         }
@@ -205,7 +280,7 @@ fn look_around(
 
     match layout.get(&move_in_direction(current_position, Direction::West)) {
         // Nothing to see here, move along....
-        Some(Block::Wall) | Some(Block::Empty(true)) => (),
+        Some(Block::Wall) | Some(Block::Empty(true)) | Some(Block::Oxygen(true)) => (),
         _ => {
             branches_to_explore.push((current_position, Direction::West));
         }
@@ -213,7 +288,7 @@ fn look_around(
 
     match layout.get(&move_in_direction(current_position, Direction::East)) {
         // Nothing to see here, move along....
-        Some(Block::Wall) | Some(Block::Empty(true)) => (),
+        Some(Block::Wall) | Some(Block::Empty(true)) | Some(Block::Oxygen(true)) => (),
         _ => {
             branches_to_explore.push((current_position, Direction::East));
         }
@@ -228,15 +303,14 @@ fn look_around(
         // Find another branch to explore
         match branches_to_explore.pop() {
             None => {
-                println!("No branches to explore, moving randomly!");
-                directions.push(rand::random());
+                // explored everything!
                 break;
             }
             Some((position, direction)) => {
                 let target = move_in_direction(position, direction);
 
                 match layout.get(&target) {
-                    Some(Block::Empty(false)) | Some(Block::Oxygen) =>
+                    Some(Block::Empty(false)) | Some(Block::Oxygen(false)) =>
                     // We haven't explored this yet
                     {
                         if position == current_position {
@@ -274,7 +348,11 @@ fn look_in_direction(
 
                 match parse_status(output) {
                     Status::Oxygen => {
-                        layout.insert(new_position, Block::Oxygen);
+                        let new_block = match layout.get(&new_position) {
+                            Some(Block::Oxygen(explored)) => Block::Oxygen(*explored),
+                            _ => Block::Oxygen(false),
+                        };
+                        layout.insert(new_position, new_block);
                         moved = true;
                     }
                     Status::Wall => {
@@ -439,6 +517,55 @@ fn push_path(
     }
 }
 
+// Conduct a simple breadth-first search of the layout, and return the
+// length of the longest path from a given starting point
+fn longest_path(layout: &HashMap<(i64, i64), Block>, current_position: (i64, i64)) -> i64 {
+    let mut to_explore = Vec::new();
+    let mut known_paths: HashMap<(i64, i64), i64> = HashMap::new();
+
+    // Using reverse for a min-heap
+    to_explore.push((current_position, 0));
+
+    loop {
+        match to_explore.pop() {
+            None => {
+                // all done
+                break *known_paths.iter().max_by(|x, y| x.1.cmp(&y.1)).unwrap().1;
+            }
+            Some((position, depth)) => {
+                // check out our neighbors, and see if we've
+                // discovered a shorter path to any of them
+                // If we haven't seen this node yet, add it to the
+                // queue to explore
+                let neighbor_path_cost = depth + 1;
+                for neighbor in neighbors(position) {
+                    match layout.get(&neighbor.1) {
+                        None | Some(Block::Wall) => {
+                            // don't know anything about a path, so
+                            // can't use it
+                            continue;
+                        }
+                        _ => {
+                            match known_paths.get(&neighbor.1) {
+                                // By definition, we already have the
+                                // shortest depth to this position
+                                Some(_) => continue,
+                                _ => {
+                                    // There either is no path to this node yet,
+                                    let new_node = (neighbor.1, neighbor_path_cost);
+
+                                    known_paths.insert(new_node.0, new_node.1);
+                                    to_explore.push(new_node);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+    }
+}
+
 #[test]
 fn a_star_test() {
     let mut layout = HashMap::new();
@@ -462,7 +589,7 @@ fn a_star_test() {
     layout.insert((-1, 2), Block::Wall);
     layout.insert((0, 2), Block::Empty(true));
     layout.insert((1, 2), Block::Wall);
-    layout.insert((2, 2), Block::Oxygen);
+    layout.insert((2, 2), Block::Oxygen(false));
     layout.insert((3, 2), Block::Wall);
 
     // first row
