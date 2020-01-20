@@ -3,17 +3,24 @@ use crate::util;
 pub fn part1() -> i64 {
     let input = digits(&util::file_as_string("data/d16.txt"));
 
-    vec_to_int(
-        fft(input, 100)
-            .iter()
-            .take(8)
-            .copied()
-            .collect::<Vec<i64>>(),
-    )
+    let output = fft(input, 100);
+
+    vec_to_int(&output[0..8])
 }
 
 pub fn part2() -> i64 {
-    42
+    let mut input = digits(&util::file_as_string("data/d16.txt")).repeat(10000);
+
+    let offset = vec_to_int(&input[0..7]) as usize;
+
+    // The offset happens to be 5,978,261 (out of 6,500,000 digits in
+    // the repeated sequence). By the time we're calculating the FFT
+    // all way out here (the remaining 521,739 digits), it's all 1's.
+    input = input[offset..].to_vec();
+
+    let output = simple_fft(input, 100);
+
+    vec_to_int(&output[0..8])
 }
 
 fn digits(input: &str) -> Vec<i64> {
@@ -24,10 +31,10 @@ fn digits(input: &str) -> Vec<i64> {
         .collect::<Vec<i64>>()
 }
 
-fn vec_to_int(mut input: Vec<i64>) -> i64 {
+fn vec_to_int(input: &[i64]) -> i64 {
     let mut output = 0;
     for i in 0..input.len() as u32 {
-        output += input.pop().unwrap() * 10_i64.pow(i);
+        output += input[input.len() - (i + 1) as usize] * 10_i64.pow(i);
     }
 
     output
@@ -78,6 +85,27 @@ fn fft(input: Vec<i64>, count: i64) -> Vec<i64> {
     current
 }
 
+// Here, we take advantage of the fact that our inputs are all well
+// into the range of being multiplied by 1, so we cheat a bit...
+fn simple_fft(mut input: Vec<i64>, count: i64) -> Vec<i64> {
+    let mut output;
+
+    for _ in 0..count {
+        output = Vec::new();
+        output.push(input.pop().unwrap());
+
+        for i in 0..input.len() {
+            output.push((output[i] + input.pop().unwrap()) % 10);
+        }
+
+        output.reverse();
+
+        input = output;
+    }
+
+    input
+}
+
 #[test]
 fn fft_test() {
     // single step
@@ -121,5 +149,44 @@ fn pattern_test() {
 
 #[test]
 fn vec_to_int_test() {
-    assert_eq!(123, vec_to_int(vec![1, 2, 3]));
+    assert_eq!(123, vec_to_int(&[1, 2, 3]));
+}
+
+#[test]
+fn test_offset_1() {
+    let mut input = digits("03036732577212944063491565474664").repeat(10000);
+
+    let offset = vec_to_int(&input[0..7]) as usize;
+
+    input = input[offset..].to_vec();
+
+    let output = simple_fft(input, 100);
+
+    assert_eq!(84462026, vec_to_int(&output[0..8]));
+}
+
+#[test]
+fn test_offset_2() {
+    let mut input = digits("02935109699940807407585447034323").repeat(10000);
+
+    let offset = vec_to_int(&input[0..7]) as usize;
+
+    input = input[offset..].to_vec();
+
+    let output = simple_fft(input, 100);
+
+    assert_eq!(78725270, vec_to_int(&output[0..8]));
+}
+
+#[test]
+fn test_offset_3() {
+    let mut input = digits("03081770884921959731165446850517").repeat(10000);
+
+    let offset = vec_to_int(&input[0..7]) as usize;
+
+    input = input[offset..].to_vec();
+
+    let output = simple_fft(input, 100);
+
+    assert_eq!(53553731, vec_to_int(&output[0..8]));
 }

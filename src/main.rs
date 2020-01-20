@@ -251,6 +251,12 @@ fn run_all() {
         "day16::part1 failed!"
     );
 
+    assert_eq!(
+        26_857_164,
+        run_one_and_return("day16::part2", day16::part2),
+        "day16::part2 failed!"
+    );
+
     println!("Total elapsed time: {:?}", Instant::elapsed(&start));
 }
 
