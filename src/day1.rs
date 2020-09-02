@@ -40,12 +40,12 @@ fn part1_test() {
     assert_eq!(2, mass_to_fuel(12));
     assert_eq!(2, mass_to_fuel(14));
     assert_eq!(654, mass_to_fuel(1969));
-    assert_eq!(33583, mass_to_fuel(100756));
+    assert_eq!(33583, mass_to_fuel(100_756));
 }
 
 #[test]
 fn part2_test() {
     assert_eq!(2, mass_to_fuel_inclusive(12));
     assert_eq!(966, mass_to_fuel_inclusive(1969));
-    assert_eq!(50346, mass_to_fuel_inclusive(100756));
+    assert_eq!(50346, mass_to_fuel_inclusive(100_756));
 }

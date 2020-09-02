@@ -134,7 +134,7 @@ fn feedback_test() {
     ]);
 
     assert_eq!(
-        139629729,
+        139_629_729,
         run_phase_sequence(&input, vec![9, 8, 7, 6, 5], 0).1
     );
 

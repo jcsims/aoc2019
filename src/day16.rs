@@ -27,7 +27,7 @@ fn digits(input: &str) -> Vec<i64> {
     input
         .chars()
         .filter_map(|x| x.to_digit(10))
-        .map(|x| i64::from(x))
+        .map(i64::from)
         .collect::<Vec<i64>>()
 }
 
@@ -41,13 +41,10 @@ fn vec_to_int(input: &[i64]) -> i64 {
 }
 
 // Generate the base pattern, which can just be cycled
-fn pattern_iterator<'a>(
-    base_pattern: &'a Vec<i64>,
-    repeats: &'a usize,
-) -> impl Iterator<Item = i64> + 'a {
+fn pattern_iterator<'a>(base_pattern: &'a [i64], repeats: usize) -> impl Iterator<Item = i64> + 'a {
     base_pattern
         .iter()
-        .flat_map(move |x| vec![*x].repeat(*repeats))
+        .flat_map(move |x| vec![*x].repeat(repeats))
         .cycle()
         .skip(1)
 }
@@ -56,7 +53,7 @@ fn normalize(num: i64) -> i64 {
     (num % 10).abs()
 }
 
-fn ith_output(pattern: &Vec<i64>, input: &Vec<i64>, i: &usize) -> i64 {
+fn ith_output(pattern: &[i64], input: &[i64], i: usize) -> i64 {
     let mut pattern_iter = pattern_iterator(pattern, i);
 
     normalize(input.iter().map(|x| x * pattern_iter.next().unwrap()).sum())
@@ -67,16 +64,16 @@ fn ith_output(pattern: &Vec<i64>, input: &Vec<i64>, i: &usize) -> i64 {
 //   - each input element multiplied by the corresponding number in a
 //     sequence from the patter_iterator, with `repeats` equal to the
 //     count of the element being generated (starting at 1)
-fn fft_step(input: &Vec<i64>) -> Vec<i64> {
+fn fft_step(input: &[i64]) -> Vec<i64> {
     let pattern = vec![0, 1, 0, -1];
 
     (1..input.len() + 1)
-        .map(|x| ith_output(&pattern, &input, &x))
+        .map(|x| ith_output(&pattern, &input, x))
         .collect()
 }
 
 fn fft(input: Vec<i64>, count: i64) -> Vec<i64> {
-    let mut current = input.clone();
+    let mut current = input;
 
     for _ in 0..count {
         current = fft_step(&current);
@@ -134,14 +131,14 @@ fn normalize_test() {
 fn pattern_test() {
     assert_eq!(
         vec![2, 3, 4, 1],
-        pattern_iterator(&vec![1, 2, 3, 4], &1)
+        pattern_iterator(&[1, 2, 3, 4], 1)
             .take(4)
             .collect::<Vec<i64>>()
     );
 
     assert_eq!(
         vec![1, 2, 2, 3, 3, 4],
-        pattern_iterator(&vec![1, 2, 3, 4], &2)
+        pattern_iterator(&[1, 2, 3, 4], 2)
             .take(6)
             .collect::<Vec<i64>>()
     );
@@ -162,7 +159,7 @@ fn test_offset_1() {
 
     let output = simple_fft(input, 100);
 
-    assert_eq!(84462026, vec_to_int(&output[0..8]));
+    assert_eq!(84_462_026, vec_to_int(&output[0..8]));
 }
 
 #[test]
@@ -175,7 +172,7 @@ fn test_offset_2() {
 
     let output = simple_fft(input, 100);
 
-    assert_eq!(78725270, vec_to_int(&output[0..8]));
+    assert_eq!(78_725_270, vec_to_int(&output[0..8]));
 }
 
 #[test]
@@ -188,5 +185,5 @@ fn test_offset_3() {
 
     let output = simple_fft(input, 100);
 
-    assert_eq!(53553731, vec_to_int(&output[0..8]));
+    assert_eq!(53_553_731, vec_to_int(&output[0..8]));
 }

@@ -1,6 +1,5 @@
 use crate::util;
 //use log::trace;
-use primes;
 use regex::Regex;
 use std::cmp::{self, Ordering};
 use std::collections::HashMap;

@@ -6,6 +6,7 @@ mod day13;
 mod day14;
 mod day15;
 mod day16;
+mod day17;
 mod day2;
 mod day3;
 mod day4;
@@ -57,6 +58,8 @@ fn main() {
             "d15p2" => run_one(day15::part2),
             "d16p1" => run_one(day16::part1),
             "d16p2" => run_one(day16::part2),
+            "d17p1" => run_one(day17::part1),
+            "d17p2" => run_one(day17::part2),
             _ => panic!("unknown exercise: {}", exercise),
         },
     }

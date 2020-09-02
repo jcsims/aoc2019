@@ -44,7 +44,7 @@ pub fn part2() -> i64 {
         }
     }
 
-    (100 * correct_noun + correct_verb)
+    100 * correct_noun + correct_verb
 }
 
 #[test]

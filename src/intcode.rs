@@ -654,7 +654,7 @@ fn relative_test() {
         109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
     ]
     .iter()
-    .zip((&program).output.iter())
+    .zip(program.output.iter())
     {
         assert_eq!(expected, produced);
     }
@@ -664,7 +664,7 @@ fn relative_test() {
 fn large_numbers_test() {
     let _ = env_logger::builder().is_test(true).try_init();
 
-    let mut program = Program::new(vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0]);
+    let mut program = Program::new(vec![1102, 34_915_192, 34_915_192, 7, 4, 7, 99, 0]);
 
     run_program(&mut program);
 
@@ -673,11 +673,14 @@ fn large_numbers_test() {
         util::digits(get_next_output(&mut program).unwrap()).len()
     );
 
-    program = Program::new(vec![104, 1125899906842624, 99]);
+    program = Program::new(vec![104, 1_125_899_906_842_624, 99]);
 
     run_program(&mut program);
 
-    assert_eq!(1125899906842624, get_next_output(&mut program).unwrap());
+    assert_eq!(
+        1_125_899_906_842_624,
+        get_next_output(&mut program).unwrap()
+    );
 }
 
 #[test]

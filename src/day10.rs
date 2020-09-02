@@ -31,9 +31,9 @@ pub fn part2() -> i64 {
     assert!(others.len() > 200);
 
     others.sort_by(|a, b| {
-        (circular_distance_from_y_axis(station, *a)
+        circular_distance_from_y_axis(station, *a)
             .partial_cmp(&circular_distance_from_y_axis(station, *b))
-            .unwrap())
+            .unwrap()
     });
 
     let target = others[199];
@@ -186,7 +186,7 @@ fn can_see_test() {
 
     let can_see = input
         .iter()
-        .map(|x| (num_points_visible_to_asteroid(x.clone(), &input), x))
+        .map(|x| (num_points_visible_to_asteroid(*x, &input), x))
         .collect::<Vec<(i32, &Point)>>();
 
     assert_eq!(
@@ -219,11 +219,11 @@ fn test_circular_distance() {
 
     assert_eq!(consts::FRAC_PI_2, 1f32.atan2(0f32));
 
-    assert_eq!(-consts::FRAC_PI_2, -1f32.atan2(0f32));
+    assert_eq!(-consts::FRAC_PI_2, -(1f32.atan2(0f32)));
 
-    assert_eq!(-consts::PI + consts::FRAC_PI_4, -1f32.atan2(-1f32));
+    assert_eq!(-consts::PI + consts::FRAC_PI_4, -(1f32.atan2(-1f32)));
 
-    assert!((consts::PI - 0f32.atan2(-1f32)).abs() < 0.000001);
+    assert!((consts::PI - 0f32.atan2(-1f32)).abs() < 0.000_001);
 
     // Note that in our system,y increases as you go "down" in a grid.
     assert_eq!(
